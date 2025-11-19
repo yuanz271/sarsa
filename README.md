@@ -10,7 +10,7 @@ Install dependencies into a Python (>=3.11) environment with an editable install
 pip install -e .
 ```
 
-For extras:
+For examples:
 
 ```bash
 pip install -e .[examples]
