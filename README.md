@@ -19,7 +19,7 @@ pip install -e .[examples]
 Install the latest code directly from GitHub:
 
 ```bash
-pip install git+https://github.com/yuanz271/tdl
+pip install git+https://github.com/yuanz271/tdl.git
 ```
 
 ## Example
