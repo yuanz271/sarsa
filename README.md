@@ -16,6 +16,12 @@ Install with examples:
 pip install -e .[examples]
 ```
 
+Install the latest code directly from GitHub:
+
+```bash
+pip install git+https://github.com/yuanz271/tdl
+```
+
 ## Example
 
 Fit to the session `examples/M1.csv`:
