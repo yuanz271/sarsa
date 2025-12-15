@@ -120,7 +120,7 @@ def merge(params, static):
     )
 
 
-def update(params, quintuple: Quintuple, q: NDArray, reward_func: Callable):
+def update(params, quintuple: Quintuple, q: NDArray):
     """Apply the SARSA update for a single transition.
 
     Parameters
@@ -131,8 +131,6 @@ def update(params, quintuple: Quintuple, q: NDArray, reward_func: Callable):
         Transition describing state-action pairs and the next state.
     q : NDArray
         Q-function prior to applying the update.
-    reward_func : Callable
-        Callback returning the reward for a state given the parameter vector.
 
     Returns
     -------
@@ -189,7 +187,7 @@ def run(params, quintuples, q0, reward_func):
         quintuple = quintuples[t]
         logprob[t] = action_logprob(params, q[*quintuple.s1])
         quintuple.r2 = reward_func(params, quintuple.s2)  # calculate stepwise net reward on the fly for trainable reward-related parameters
-        qs[t + 1], error[t + 1] = update(params, quintuple, q, reward_func)
+        qs[t + 1], error[t + 1] = update(params, quintuple, q)
         # q = qs[t + 1]
     return qs, logprob, error
 
