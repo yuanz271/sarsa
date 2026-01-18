@@ -194,7 +194,7 @@ def run(params, quintuples, q0, transition_reward_func):
         assert np.all(quintuple.s2 == s2)
         quintuple.r2 = r2
         qs[t + 1], error[t + 1] = update(params, quintuple, q)
-        # q = qs[t + 1]
+        q = qs[t + 1]
     return qs, logprob, error
 
 

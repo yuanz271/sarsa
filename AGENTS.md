@@ -15,6 +15,8 @@ sarsa/
 │   ├── sarsa.ipynb      # Primary entry point - run this
 │   ├── experiment.py    # Task-specific state/reward helpers
 │   └── M1.csv           # Sample behavioural dataset (6.3MB)
+├── tests/               # Test suite (pytest)
+│   └── test_sarsa.py    # Integration tests mirroring notebook workflow
 ├── pyproject.toml       # Build config (hatchling), deps (numpy, scipy)
 └── uv.lock              # Locked dependencies
 ```
@@ -46,10 +48,14 @@ sarsa/
 # Install
 uv sync                        # Runtime deps only
 uv sync --extra examples       # + JupyterLab for notebook
+uv sync --group dev            # + pytest for testing
 pip install -e .               # Alternative editable install
 
 # Run
 jupyter lab examples/sarsa.ipynb   # Primary workflow
+
+# Test
+uv run pytest tests/ -v            # Run test suite
 
 # Lint (treat warnings as errors before commit)
 uvx ruff check
@@ -68,7 +74,6 @@ uvx ruff format
 ## Anti-Patterns
 
 - **No `as any` / type suppression** - fix types properly
-- **No tests exist yet** - add `tests/test_<module>.py` when contributing
 - **No CLI entry points** - library only, use notebook or import
 - **No commits without asking** - always ask the user before committing
 - **Never push** - user will push manually
