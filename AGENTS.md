@@ -70,6 +70,8 @@ uvx ruff format
 - **No `as any` / type suppression** - fix types properly
 - **No tests exist yet** - add `tests/test_<module>.py` when contributing
 - **No CLI entry points** - library only, use notebook or import
+- **No commits without asking** - always ask the user before committing
+- **Never push** - user will push manually
 
 ## Notes
 
