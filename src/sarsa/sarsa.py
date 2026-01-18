@@ -7,17 +7,16 @@ This implementation is designed to be independent from the interpretation of sta
 It only requires the state and action to be integer NumPy arrays.
 It assumes that the first 3 components of parameter vector are alpha, beta and gamma.
 The rest components are user-defined parameters (e.g. hidden reward)
-
 """
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import IntEnum
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy import optimize
 from scipy.special import log_softmax
-
 
 EPS = 1e-8  # Minimum positive value
 PARAM_BOUNDS = [
@@ -155,7 +154,7 @@ def update(params, quintuple: Quintuple, q: NDArray):
     return q_new, error
 
 
-def run(params, quintuples, q0, reward_func):
+def run(params, quintuples, q0, transition_reward_func):
     """Execute SARSA over a sequence of quintuples.
 
     Parameters
@@ -166,8 +165,8 @@ def run(params, quintuples, q0, reward_func):
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
         Initial Q-function prior to any updates.
-    reward_func : Callable
-        Callback returning the reward for a state given the parameter vector.
+    transition_reward_func : Callable
+        Callback returning the new state and reward for a state and an action given the parameter vector.
 
     Returns
     -------
@@ -186,15 +185,20 @@ def run(params, quintuples, q0, reward_func):
     for t in range(T):
         quintuple = quintuples[t]
         logprob[t] = action_logprob(params, q[*quintuple.s1])
-        quintuple.r2 = reward_func(
-            params, quintuple.s2
+        s2, r2 = transition_reward_func(
+            params,
+            quintuple.s1,
+            quintuple.a1,
+            quintuple.s2,
         )  # calculate stepwise net reward on the fly for trainable reward-related parameters
+        assert np.all(quintuple.s2 == s2)
+        quintuple.r2 = r2
         qs[t + 1], error[t + 1] = update(params, quintuple, q)
         # q = qs[t + 1]
     return qs, logprob, error
 
 
-def run_and_loss(params, static, quintuples, q0, reward_func):
+def run_and_loss(params, static, quintuples, q0, transition_reward_func):
     """Run SARSA and compute the cross-entropy loss.
 
     Parameters
@@ -207,8 +211,8 @@ def run_and_loss(params, static, quintuples, q0, reward_func):
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
         Initial Q-function prior to any updates.
-    reward_func : Callable
-        Callback returning the reward for a state given the parameter vector.
+    transition_reward_func : Callable
+        Callback returning the new state and reward for a state and an action given the parameter vector.
 
     Returns
     -------
@@ -219,7 +223,7 @@ def run_and_loss(params, static, quintuples, q0, reward_func):
         params, static
     )  # transform parameters to constrained and replace with fixed values
     actions = np.array([q.a1 for q in quintuples], dtype=np.int_)
-    q, logprob, _ = run(params, quintuples, q0, reward_func)
+    q, logprob, _ = run(params, quintuples, q0, transition_reward_func)
     assert len(logprob) == len(actions), f"{len(logprob)}, {len(actions)}"
     ce = cross_entropy(logprob, actions)
     return ce
@@ -230,7 +234,7 @@ def fit(
     q0: NDArray,
     p0: NDArray,
     static_params: list | None,
-    reward_func: Callable,
+    transition_reward_func: Callable,
     custom_param_bounds,
 ):
     """Optimise SARSA parameters against observed quintuples.
@@ -245,8 +249,8 @@ def fit(
         Initial guess for the optimiser across learnable parameters.
     static_params : list[float | None] or None
         Optional fixed parameter values, matching the length of ``p0`` plus custom parameters.
-    reward_func : Callable
-        Callback returning the reward for a state given the parameter vector.
+    transition_reward_func : Callable
+        Callback returning the new state and reward for a state and an action given the parameter vector.
     custom_param_bounds : Sequence[tuple[float | None, float | None]]
         Bounds applied to custom parameters alongside the built-in SARSA bounds.
 
@@ -267,15 +271,18 @@ def fit(
     res = optimize.minimize(
         run_and_loss,
         x0=p0,
-        args=(static_params, quintuples, q0, reward_func),
+        args=(static_params, quintuples, q0, transition_reward_func),
         bounds=PARAM_BOUNDS + custom_param_bounds,
     )
 
     loss = res.fun  # type: ignore
     params = res.x  # type: ignore
+    print(f"{res.success=}")
     params = merge(params, static_params)
 
-    q_trajectory, logprob_trajectory, error = run(params, quintuples, q0, reward_func)
+    q_trajectory, logprob_trajectory, error = run(
+        params, quintuples, q0, transition_reward_func
+    )
 
     action_prob = to_prob(logprob_trajectory)
 
