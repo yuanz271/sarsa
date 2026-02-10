@@ -1,7 +1,19 @@
 # Author: Yuan Zhao <yuan.zhao@nih.gov>
 # Affiliation: Machine Learning Core, NIMH
 """
-Experimental design and data processing
+Experimental design and data processing.
+
+This module defines stimulus onset schedules and behavioural data processing
+helpers for a threat-conditioning experiment.  Three experimental phases are
+supported:
+
+- **RT** -- Reward Training (light cue only, no shock).
+- **LC** -- Learned Controllability (light + tone, shock follows tone).
+- **UNP** -- Uncontrollable/Unpredictable (light + tone, shock at uncorrelated
+  times).
+
+Constants encode the event timing for each phase.  Helper functions convert raw
+apparatus recordings into discrete SARSA states.
 """
 
 from enum import IntEnum
@@ -9,6 +21,8 @@ import numpy as np
 import pandas as pd
 
 
+#: Light-onset times (in seconds) for each experimental phase.
+#: Each array lists the start times when the light cue is presented.
 LIGHT_ONSET = {
     "RT": np.array(
         [
@@ -117,6 +131,8 @@ LIGHT_ONSET = {
     ),
 }
 
+#: Tone-onset times (in seconds) for each experimental phase.
+#: RT has no tones; LC and UNP phases include tone presentations.
 TONE_ONSET = {
     "RT": np.array([], dtype=float),
     "LC": np.array(
@@ -171,6 +187,9 @@ TONE_ONSET = {
     ),
 }
 
+#: Shock-onset times (in seconds) for each experimental phase.
+#: RT has no shocks.  In LC, shock follows tone by 28 s.  In UNP, shock times
+#: are decoupled from tone onset.
 SHOCK_ONSET = {
     "RT": np.array([], dtype=float),
     "LC": TONE_ONSET["LC"] + 28,
@@ -201,6 +220,9 @@ SHOCK_ONSET = {
     ),
 }
 
+#: Trial-type labels per trial for each phase.
+#: Integer codes distinguish different trial conditions within a phase.
+#: ``None`` indicates the phase has no structured trial types (UNP).
 TRIAL_TYPE = {
     "RT": np.ones_like(LIGHT_ONSET["LC"], dtype=int),
     "LC": np.array(
@@ -246,11 +268,16 @@ TRIAL_TYPE = {
 }
 
 
+#: State-space dimensions: ``(n_locations, n_light_states, n_tone_states)``.
+#:
+#: - 3 locations (Platform, Center, Reward zone)
+#: - 4 light states (0 = off, 1-3 = onset time bins)
+#: - 4 tone states  (0 = off, 1-3 = onset time bins)
 rt_lc_unp_state_spec = (
     3,
     4,
     4,
-)  # 3 locations, 1 + X light (encode time, L1, ..., LX  each ?sec), 1 + X tone (encode time, T1, ..., TX each ?sec)
+)
 
 
 def downsample_behavior_data(behavior_data, frequency):
@@ -401,6 +428,18 @@ class StateAxis(IntEnum):
 
 
 class Location(IntEnum):
+    """Discrete location labels for the experimental arena.
+
+    Attributes
+    ----------
+    P : int
+        Platform (safe zone).
+    C : int
+        Center (open area).
+    R : int
+        Reward zone.
+    """
+
     P = 0
     C = 1
     R = 2

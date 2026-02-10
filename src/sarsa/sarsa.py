@@ -5,11 +5,19 @@ SARSA
 
 This implementation is designed to be independent from the interpretation of state and action.
 It only requires the state and action to be integer NumPy arrays.
-It assumes that the first 3 components of parameter vector are alpha, beta and gamma.
-The rest components are user-defined parameters (e.g. hidden reward)
+
+The parameter vector is structured as follows:
+
+- ``params[0]`` -- **alpha** (learning rate)
+- ``params[1]`` -- **beta** (inverse temperature for the softmax policy)
+- ``params[2]`` -- **gamma** (discount / decay factor)
+- ``params[3:]`` -- user-defined parameters (e.g. hidden reward values)
+
+See :class:`ParamIndex` for the canonical index constants.
 """
 
-from collections.abc import Callable
+import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -17,6 +25,8 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import optimize
 from scipy.special import log_softmax
+
+logger = logging.getLogger(__name__)
 
 EPS = 1e-8  # Minimum positive value
 PARAM_BOUNDS = [
@@ -45,13 +55,13 @@ class Quintuple:
     a2: int
 
 
-def action_logprob(params, v) -> NDArray:
+def action_logprob(params: NDArray, v: NDArray) -> NDArray:
     """Compute softmax log-probabilities for each action.
 
     Parameters
     ----------
     params : NDArray
-        Parameter vector with the inverse temperature stored at ``Param.beta``.
+        Parameter vector with the inverse temperature stored at ``ParamIndex.beta``.
     v : NDArray
         Action-value estimates prior to scaling.
 
@@ -64,7 +74,7 @@ def action_logprob(params, v) -> NDArray:
     return log_softmax(v * beta)
 
 
-def to_prob(p):
+def to_prob(p: NDArray) -> NDArray:
     """Convert log-probabilities into probabilities.
 
     Parameters
@@ -80,7 +90,7 @@ def to_prob(p):
     return np.exp(p)
 
 
-def cross_entropy(inputs, targets):
+def cross_entropy(inputs: NDArray, targets: NDArray) -> np.floating:
     """Compute cross-entropy loss against observed actions.
 
     Parameters
@@ -99,7 +109,7 @@ def cross_entropy(inputs, targets):
     return -np.nanmean(ce)
 
 
-def merge(params, static):
+def merge(params: NDArray, static: Sequence[float | None]) -> NDArray:
     """Combine trainable parameters with optional fixed values.
 
     Parameters
@@ -119,7 +129,7 @@ def merge(params, static):
     )
 
 
-def update(params, quintuple: Quintuple, q: NDArray):
+def update(params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, float]:
     """Apply the SARSA update for a single transition.
 
     Parameters
@@ -154,7 +164,12 @@ def update(params, quintuple: Quintuple, q: NDArray):
     return q_new, error
 
 
-def run(params, quintuples, q0, transition_reward_func):
+def run(
+    params: NDArray,
+    quintuples: Sequence[Quintuple],
+    q0: NDArray,
+    transition_reward_func: Callable,
+) -> tuple[NDArray, NDArray, NDArray]:
     """Execute SARSA over a sequence of quintuples.
 
     Parameters
@@ -176,6 +191,12 @@ def run(params, quintuples, q0, transition_reward_func):
         Log-probabilities per timestep for the actions taken.
     NDArray
         Temporal-difference errors per timestep.
+
+    Raises
+    ------
+    AssertionError
+        If ``transition_reward_func`` returns a next-state that differs from
+        the quintuple's recorded ``s2``.
     """
     T = len(quintuples)
     qs = np.zeros((T + 1,) + q0.shape)
@@ -198,7 +219,13 @@ def run(params, quintuples, q0, transition_reward_func):
     return qs, logprob, error
 
 
-def run_and_loss(params, static, quintuples, q0, transition_reward_func):
+def run_and_loss(
+    params: NDArray,
+    static: Sequence[float | None],
+    quintuples: Sequence[Quintuple],
+    q0: NDArray,
+    transition_reward_func: Callable,
+) -> np.floating:
     """Run SARSA and compute the cross-entropy loss.
 
     Parameters
@@ -235,8 +262,8 @@ def fit(
     p0: NDArray,
     static_params: list | None,
     transition_reward_func: Callable,
-    custom_param_bounds,
-):
+    custom_param_bounds: Sequence[tuple[float | None, float | None]],
+) -> tuple[NDArray, float, NDArray, NDArray]:
     """Optimise SARSA parameters against observed quintuples.
 
     Parameters
@@ -264,6 +291,17 @@ def fit(
         Trajectory of Q-functions over the rollout.
     NDArray
         Probability of each action per timestep derived from the fitted policy.
+
+    Raises
+    ------
+    AssertionError
+        Propagated from :func:`run` if the reward callback returns an
+        inconsistent next-state, or if logprob/action lengths mismatch.
+
+    Notes
+    -----
+    The underlying ``scipy.optimize.minimize`` may fail to converge.  Check the
+    log output (INFO level) for the optimizer success flag and message.
     """
     if static_params is None:
         static_params = [None] * len(p0)
@@ -272,12 +310,12 @@ def fit(
         run_and_loss,
         x0=p0,
         args=(static_params, quintuples, q0, transition_reward_func),
-        bounds=PARAM_BOUNDS + custom_param_bounds,
+        bounds=PARAM_BOUNDS + list(custom_param_bounds),
     )
 
     loss = res.fun  # type: ignore
     params = res.x  # type: ignore
-    print(f"{res.success=}")
+    logger.info("Optimizer finished: success=%s, message=%s", res.success, res.message)
     params = merge(params, static_params)
 
     q_trajectory, logprob_trajectory, error = run(

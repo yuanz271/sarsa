@@ -4,6 +4,16 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 
 ## Installation
 
+### Using uv (recommended)
+
+```bash
+uv sync                        # Runtime deps only
+uv sync --extra examples       # + JupyterLab for notebook
+uv sync --group dev            # + pytest for testing
+```
+
+### Using pip
+
 Install dependencies into a Python (>=3.11) environment with an editable install:
 
 ```bash
@@ -29,3 +39,20 @@ Fit to the session `examples/M1.csv`:
 ```bash
 jupyter lab examples/sarsa.ipynb
 ```
+
+## Testing
+
+```bash
+uv run pytest tests/ -v
+```
+
+## Linting
+
+```bash
+uvx ruff check
+uvx ruff format
+```
+
+## License
+
+[MIT](LICENSE)

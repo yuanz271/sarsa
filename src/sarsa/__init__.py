@@ -5,3 +5,5 @@
 from . import sarsa
 
 __all__ = ["sarsa"]
+
+__version__ = "0.1.0"

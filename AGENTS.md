@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-**Generated:** 2025-01-18 | **Commit:** 7012eac | **Branch:** transition
+**Generated:** 2025-01-18 | **Commit:** 3142777 | **Branch:** main
 
 ## Overview
 
@@ -14,9 +14,16 @@ sarsa/
 ├── examples/            # Notebook demo + experiment helpers + sample data
 │   ├── sarsa.ipynb      # Primary entry point - run this
 │   ├── experiment.py    # Task-specific state/reward helpers
+│   ├── README.md        # Examples directory guide
 │   └── M1.csv           # Sample behavioural dataset (6.3MB)
 ├── tests/               # Test suite (pytest)
+│   ├── __init__.py      # Package marker for pytest discovery
 │   └── test_sarsa.py    # Integration tests mirroring notebook workflow
+├── .gitignore           # Git ignore rules
+├── AGENTS.md            # Repository guidelines for AI agents
+├── CHANGELOG.md         # Release history
+├── LICENSE              # MIT license
+├── README.md            # Project overview and installation
 ├── pyproject.toml       # Build config (hatchling), deps (numpy, scipy)
 └── uv.lock              # Locked dependencies
 ```
@@ -41,6 +48,11 @@ sarsa/
 | `Quintuple` | dataclass | sarsa.py:37 | (s1, a1, r2, s2, a2) transition |
 | `ParamIndex` | enum | sarsa.py:29 | alpha=0, beta=1, gamma=2 |
 | `PARAM_BOUNDS` | const | sarsa.py:22 | Default bounds for optimizer |
+| `action_logprob` | function | sarsa.py:48 | Softmax log-probabilities for actions |
+| `to_prob` | function | sarsa.py:67 | Convert log-probs to probabilities |
+| `cross_entropy` | function | sarsa.py:83 | Cross-entropy loss against observed actions |
+| `merge` | function | sarsa.py:102 | Combine trainable and fixed params |
+| `run_and_loss` | function | sarsa.py:201 | Run SARSA and compute cross-entropy loss |
 
 ## Commands
 
@@ -65,7 +77,7 @@ uvx ruff format
 ## Conventions
 
 - **PEP 8** with 4-space indent
-- **Type hints** on public functions: `def run_session(path: Path, rng: np.random.Generator) -> None`
+- **Type hints** on public functions: `def fit(quintuples: list, q0: NDArray, p0: NDArray, ...) -> tuple[NDArray, float, NDArray, NDArray]`
 - **NumPy docstrings** with `Parameters`, `Returns`, `Raises` sections
 - **One class/solver per file**
 - **Constants**: UPPERCASE (`ACTION_SIZE`, `EPS`)
@@ -73,7 +85,7 @@ uvx ruff format
 
 ## Anti-Patterns
 
-- **No `as any` / type suppression** - fix types properly
+- **No `# type: ignore` / type suppression** - fix types properly
 - **No CLI entry points** - library only, use notebook or import
 - **No commits without asking** - always ask the user before committing
 - **Never push** - user will push manually

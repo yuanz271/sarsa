@@ -20,6 +20,13 @@ from sarsa import sarsa
 
 # ---------------------------------------------------------------------------
 # Experiment helpers (copied from examples/experiment.py for test isolation)
+#
+# WARNING: These helpers are intentionally duplicated from examples/experiment.py
+# to keep the test suite self-contained.  If the experiment logic changes in
+# examples/experiment.py, the corresponding helpers here must be updated manually.
+#
+# Test data dependency: tests rely on examples/M1.csv (~6.3 MB behavioural
+# dataset).  The file must be present for the test suite to pass.
 # ---------------------------------------------------------------------------
 
 LIGHT_ONSET_LC = np.array(
