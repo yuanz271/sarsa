@@ -6,6 +6,12 @@
 
 SARSA reinforcement learning toolkit for fitting behavioural datasets. Pure Python library (numpy, scipy) with Jupyter notebook workflow.
 
+## Git Workflow
+
+- Follow GitHub flow: branch from `main`, open a PR, and merge via review.
+- Keep branches focused and short-lived.
+- Never commit, push, merge, rebase, or tag without user approval.
+
 ## Structure
 
 ```

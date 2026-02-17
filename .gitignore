@@ -298,3 +298,4 @@ $RECYCLE.BIN/
 # Project
 data/
 git-town.toml
+uv.lock
