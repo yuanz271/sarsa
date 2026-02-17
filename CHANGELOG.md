@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Refactored reward callback to transition-based signature (`transition_reward_func` now receives `(params, s1, a1, s2)` and returns `(s2, reward)`).
 - Updated `AGENTS.md` with accurate paths and code map.
+- Added validation for quintuples and Q-table shapes in `run`/`fit`, raising clearer errors for invalid indices.
+
+### Fixed
+- Fixed SARSA updates to propagate Q-values sequentially during `run` and `fit`.
 
 ## [0.1.0] - 2025-01-10
 
