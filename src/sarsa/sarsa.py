@@ -37,7 +37,17 @@ PARAM_BOUNDS = [
 
 
 class ParamIndex(IntEnum):
-    """SARSA parameter index"""
+    """SARSA parameter indices.
+
+    Attributes
+    ----------
+    alpha : int
+        Learning rate index.
+    beta : int
+        Inverse temperature index.
+    gamma : int
+        Discount/decay index.
+    """
 
     alpha = 0  # learning rate
     beta = 1  # inverse temperature
@@ -181,16 +191,17 @@ def run(
     q0 : NDArray
         Initial Q-function prior to any updates.
     transition_reward_func : Callable
-        Callback returning the new state and reward for a state and an action given the parameter vector.
+        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
+        the new state and reward for a state and an action given the parameter vector.
 
     Returns
     -------
     NDArray
-        Trajectory of Q-functions, including the initial state.
+        Trajectory of Q-functions, including the initial state (length ``T + 1``).
     NDArray
         Log-probabilities per timestep for the actions taken.
     NDArray
-        Temporal-difference errors per timestep.
+        Temporal-difference errors per timestep (length ``T + 1`` with ``error[0] == 0``).
 
     Raises
     ------
@@ -239,7 +250,8 @@ def run_and_loss(
     q0 : NDArray
         Initial Q-function prior to any updates.
     transition_reward_func : Callable
-        Callback returning the new state and reward for a state and an action given the parameter vector.
+        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
+        the new state and reward for a state and an action given the parameter vector.
 
     Returns
     -------
@@ -275,11 +287,14 @@ def fit(
     p0 : NDArray
         Initial guess for the optimiser across learnable parameters.
     static_params : list[float | None] or None
-        Optional fixed parameter values, matching the length of ``p0`` plus custom parameters.
+        Optional fixed parameter values matching the full parameter vector length
+        (``len(p0)`` plus any custom parameters).
     transition_reward_func : Callable
-        Callback returning the new state and reward for a state and an action given the parameter vector.
+        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
+        the new state and reward for a state and an action given the parameter vector.
     custom_param_bounds : Sequence[tuple[float | None, float | None]]
-        Bounds applied to custom parameters alongside the built-in SARSA bounds.
+        Bounds applied to custom parameters; length must match the number of custom
+        parameters appended to ``p0``.
 
     Returns
     -------

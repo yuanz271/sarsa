@@ -30,8 +30,7 @@ sarsa/
 ├── CHANGELOG.md         # Release history
 ├── LICENSE              # MIT license
 ├── README.md            # Project overview and installation
-├── pyproject.toml       # Build config (hatchling), deps (numpy, scipy)
-└── uv.lock              # Locked dependencies
+└── pyproject.toml       # Build config (hatchling), deps (numpy, scipy)
 ```
 
 ## Where to Look
@@ -63,7 +62,7 @@ sarsa/
 ## Commands
 
 ```bash
-# Install
+# Install (dependency + venv management)
 uv sync                        # Runtime deps only
 uv sync --extra examples       # + JupyterLab for notebook
 uv sync --group dev            # + pytest for testing
@@ -75,10 +74,20 @@ jupyter lab examples/sarsa.ipynb   # Primary workflow
 # Test
 uv run pytest tests/ -v            # Run test suite
 
-# Lint (treat warnings as errors before commit)
+# Lint & format (treat warnings as errors before commit)
 uvx ruff check
 uvx ruff format
+
+# Type check
+uvx ty check
 ```
+
+## Tooling
+
+- **uv** for dependency and virtual environment management.
+- **ruff** for linting and formatting.
+- **ty** for static type checking.
+- **pytest** for tests.
 
 ## Conventions
 
@@ -95,6 +104,10 @@ uvx ruff format
 - **No CLI entry points** - library only, use notebook or import
 - **No commits without asking** - always ask the user before committing
 - **Never push** - user will push manually
+
+## Documentation Updates
+
+- Update documentation whenever changes are made (README, inline docs, changelog, or other relevant docs).
 
 ## Notes
 

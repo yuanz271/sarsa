@@ -287,14 +287,16 @@ def downsample_behavior_data(behavior_data, frequency):
     Parameters
     ----------
     behavior_data : pd.DataFrame
-        Full-resolution behavioural measurements indexed by ``TIME (S)``.
+        Full-resolution behavioural measurements with a ``TIME (S)`` column used
+        for resampling.
     frequency : str
         Pandas-compatible resampling frequency (e.g., ``\"500ms\"``).
 
     Returns
     -------
     pd.DataFrame
-        Behavioural data aggregated to ``frequency`` with gaps forward-filled.
+        Behavioural data aggregated to ``frequency`` with gaps forward-filled and
+        the index expressed in seconds.
     """
     list_of_column_names = list(behavior_data.columns)
     behavior_data_ds = pd.DataFrame()
@@ -366,7 +368,7 @@ def process_data(df, phase):
     ----------
     df : pd.DataFrame
         DataFrame containing location indicators (``IN PLATFORM``, ``IN CENTER``,
-        ``IN REWARD ZONE``) indexed by time in seconds.
+        ``IN REWARD ZONE``) with the index in seconds.
     phase : str
         Experimental block identifier (``\"RT\"``, ``\"LC\"``, or ``\"UNP\"``) used
         to fetch onset templates.
@@ -417,9 +419,16 @@ def process_data(df, phase):
 
 
 class StateAxis(IntEnum):
-    """State tuple specification
-    State is Cartesian product of location, light and tone.
-    This enum defines the indices of the state tuple.
+    """State tuple indices for ``(location, light, tone)``.
+
+    Attributes
+    ----------
+    Loc : int
+        Location axis index.
+    Light : int
+        Light onset axis index.
+    Tone : int
+        Tone onset axis index.
     """
 
     Loc = 0
@@ -457,7 +466,8 @@ def row_to_state(row):
     Returns
     -------
     np.ndarray
-        Integer state vector ``(location, light, tone)`` suitable for SARSA.
+        Integer state vector of shape ``(3,)`` containing ``(location, light, tone)``
+        suitable for SARSA.
     """
     s = np.zeros(3, dtype=int)
     if row["IN PLATFORM"] > 0:
