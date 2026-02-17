@@ -18,7 +18,7 @@ See :class:`ParamIndex` for the canonical index constants.
 
 import logging
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import IntEnum
 
 import numpy as np
@@ -133,7 +133,17 @@ def merge(params: NDArray, static: Sequence[float | None]) -> NDArray:
     -------
     NDArray
         Parameter vector with static overrides applied.
+
+    Raises
+    ------
+    ValueError
+        If ``params`` and ``static`` lengths differ.
     """
+    if len(params) != len(static):
+        raise ValueError(
+            "params and static must have the same length; "
+            f"got {len(params)} and {len(static)}"
+        )
     return np.array(
         [p if s is None else s for p, s in zip(params, static)], dtype=float
     )
@@ -174,6 +184,51 @@ def update(params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, 
     return q_new, error
 
 
+def _validate_quintuples(quintuples: Sequence[Quintuple], q0: NDArray) -> None:
+    """Validate quintuples and Q-table compatibility.
+
+    Parameters
+    ----------
+    quintuples : Sequence[Quintuple]
+        Rollout transitions describing the trajectory to learn from.
+    q0 : NDArray
+        Initial Q-function prior to any updates.
+
+    Raises
+    ------
+    ValueError
+        If quintuples are empty, state/action indices are not integer arrays,
+        or indices fall outside the bounds of ``q0``.
+    """
+    if len(quintuples) == 0:
+        raise ValueError("quintuples must be non-empty")
+    sample = quintuples[0]
+    if sample.s1.ndim != 1 or sample.s2.ndim != 1:
+        raise ValueError("state vectors must be 1-D")
+    if not np.issubdtype(sample.s1.dtype, np.integer):
+        raise ValueError("state vectors must use integer dtype")
+    state_dims = q0.shape[:-1]
+    if len(state_dims) != sample.s1.shape[0]:
+        raise ValueError(
+            "q0 state dimensions must match state vector length; "
+            f"got {len(state_dims)} and {sample.s1.shape[0]}"
+        )
+    action_dim = q0.shape[-1]
+    for quintuple in quintuples:
+        if not np.issubdtype(quintuple.s1.dtype, np.integer) or not np.issubdtype(
+            quintuple.s2.dtype, np.integer
+        ):
+            raise ValueError("state vectors must use integer dtype")
+        if quintuple.s1.shape != sample.s1.shape or quintuple.s2.shape != sample.s2.shape:
+            raise ValueError("state vectors must be consistent in shape")
+        if np.any(quintuple.s1 < 0) or np.any(quintuple.s2 < 0):
+            raise ValueError("state indices must be non-negative")
+        if np.any(quintuple.s1 >= state_dims) or np.any(quintuple.s2 >= state_dims):
+            raise ValueError("state indices out of bounds for q0")
+        if not (0 <= quintuple.a1 < action_dim) or not (0 <= quintuple.a2 < action_dim):
+            raise ValueError("action indices out of bounds for q0")
+
+
 def run(
     params: NDArray,
     quintuples: Sequence[Quintuple],
@@ -201,17 +256,20 @@ def run(
     NDArray
         Log-probabilities per timestep for the actions taken.
     NDArray
-        Temporal-difference errors per timestep (length ``T + 1`` with ``error[0] == 0``).
+        Temporal-difference errors per timestep (length ``T``).
 
     Raises
     ------
     AssertionError
         If ``transition_reward_func`` returns a next-state that differs from
         the quintuple's recorded ``s2``.
+    ValueError
+        If quintuples are empty or indices are incompatible with ``q0``.
     """
+    _validate_quintuples(quintuples, q0)
     T = len(quintuples)
     qs = np.zeros((T + 1,) + q0.shape)
-    error = np.zeros(T + 1)
+    error = np.zeros(T)
     q = qs[0] = q0
     logprob = np.zeros((T, q0.shape[-1]))
     for t in range(T):
@@ -224,8 +282,10 @@ def run(
             quintuple.s2,
         )  # calculate stepwise net reward on the fly for trainable reward-related parameters
         assert np.all(quintuple.s2 == s2)
-        quintuple.r2 = r2
-        qs[t + 1], error[t + 1] = update(params, quintuple, q)
+        # Reward depends on params; recompute each run while avoiding in-place mutation
+        # so callers can safely reuse the original quintuples.
+        quintuple_with_reward = replace(quintuple, r2=r2)
+        qs[t + 1], error[t] = update(params, quintuple_with_reward, q)
         q = qs[t + 1]
     return qs, logprob, error
 
@@ -312,6 +372,8 @@ def fit(
     AssertionError
         Propagated from :func:`run` if the reward callback returns an
         inconsistent next-state, or if logprob/action lengths mismatch.
+    ValueError
+        If quintuples are empty or indices are incompatible with ``q0``.
 
     Notes
     -----
@@ -320,6 +382,8 @@ def fit(
     """
     if static_params is None:
         static_params = [None] * len(p0)
+
+    _validate_quintuples(quintuples, q0)
 
     res = optimize.minimize(
         run_and_loss,

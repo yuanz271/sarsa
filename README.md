@@ -40,6 +40,14 @@ Fit to the session `examples/M1.csv`:
 jupyter lab examples/sarsa.ipynb
 ```
 
+## Data Assumptions
+
+- The example preprocessing expects a `TIME (S)` column in behavioral data for resampling.
+
+## Output Notes
+
+- `run()` now returns temporal-difference errors with length `T`, aligned with the number of transitions.
+
 ## Testing
 
 ```bash
