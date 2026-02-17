@@ -24,7 +24,7 @@ All notable changes to this project will be documented in this file.
 - Relocated the SARSA runner and experiment helpers into a top-level `examples/` directory to keep algorithms standalone.
 - Removed the package-level entry point and captured orchestration inside `examples/sarsa.ipynb` as an interactive example.
 - Kept experiment helpers next to the walkthrough so the `sarsa` package remains task-agnostic.
-- Compute stepwise rewards during `run` so `update` can consume them directly, keeping reward-related parameters consistent across trajectories.
+- Computed stepwise rewards during `run` so `update` can consume them directly, keeping reward-related parameters consistent across trajectories.
 
 [Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yuanz271/sarsa/releases/tag/v0.1.0
