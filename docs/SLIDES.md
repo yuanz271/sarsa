@@ -100,7 +100,7 @@ How Dopamine Implements SARSA Learning in the Brain
 - High-α subjects show faster behavioral adaptation
 - Varies by genetics, neuromodulator state, arousal
 
-<p class="cite">Hikida et al. (2010); Wise (2004)</p>
+<p class="cite">Reynolds & Wickens (2002); Wise (2004)</p>
 
 ---
 
@@ -121,7 +121,7 @@ How Dopamine Implements SARSA Learning in the Brain
 - After learning: Dopamine shifts backward to predictive cue
 - Distance of shift ∝ γ (higher γ = larger shift)
 
-<p class="cite">Pan et al. (2005); Yun et al. (2004)</p>
+<p class="cite">Pan et al. (2005); Hollerman & Schultz (1998)</p>
 
 ---
 
@@ -142,7 +142,7 @@ How Dopamine Implements SARSA Learning in the Brain
 - Increases with task engagement/arousal
 - Decreases with fatigue, stress, uncertainty
 
-<p class="cite">Daw (2011); Wiecki et al. (2013)</p>
+<p class="cite">Daw (2011); Humphries et al. (2012)</p>
 
 ---
 
@@ -178,7 +178,7 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 - **Pred 3:** Synaptic plasticity correlates with α (r > 0.5)
 - **Pred 4:** β correlates with tonic dopamine (high β ↔ high dopamine)
 
-<p class="cite">Schultz et al. (1997); Pan et al. (2005); Hikida et al. (2010); Wiecki et al. (2013)</p>
+<p class="cite">Schultz et al. (1997); Pan et al. (2005); Reynolds & Wickens (2002); Humphries et al. (2012)</p>
 
 ---
 
@@ -195,7 +195,7 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 **Your SARSA parameters are direct neural readouts**
 
-<p class="cite">Yun et al. (2004); Schultz (2015)</p>
+<p class="cite">Hollerman & Schultz (1998); Schultz (2015)</p>
 
 ---
 
@@ -209,7 +209,7 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 4. Wise, R. A. (2004). Dopamine, learning and motivation. *Nature Reviews Neuroscience*, 5(6), 483–494.
 
-5. Hikida, T., Kimura, K., Wada, N., Funabiki, K., & Nakanishi, S. (2010). Distinct roles of synaptic transmission in direct and indirect striatal pathways to reward and aversive behavior. *Neuron*, 66(6), 896–907.
+5. Reynolds, J. N. J., & Wickens, J. R. (2002). Dopamine-dependent plasticity of corticostriatal synapses. *Neural Networks*, 15(4–6), 507–521.
 
 ---
 
@@ -219,8 +219,8 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 7. Schultz, W. (2015). Neuronal reward and decision signals: From theories to data. *Physiological Reviews*, 95(3), 853–951.
 
-8. Yun, I. A., Wakabayashi, K. T., Fields, H. L., & Nicola, S. M. (2004). The ventral tegmental area is required for the behavioral and nucleus accumbens neuronal firing responses to incentive cues. *Journal of Neuroscience*, 24(12), 2923–2933.
+8. Hollerman, J. R., & Schultz, W. (1998). Dopamine neurons report an error in the temporal prediction of reward during learning. *Nature Neuroscience*, 1(4), 304–309.
 
 9. Daw, N. D. (2011). Trial-by-trial data analysis using computational models. *Decision Making, Affect, and Learning*, 3–38.
 
-10. Wiecki, T. V., Sofer, I., & Frank, M. J. (2013). From hoped to feared goal: Prospect theory in the basal ganglia. *NeuroImage*, 72, 16–22.
+10. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.

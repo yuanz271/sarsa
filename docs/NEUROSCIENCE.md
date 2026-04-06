@@ -529,9 +529,9 @@ Expected: high arousal ↔ high β.
    - **Key contribution:** Comprehensive review of dopamine's role in learning and motivation.
    - **Citation:** doi:10.1038/nrn1406
 
-6. Hikida, T., Kimura, K., Wada, N., Funabiki, K., & Nakanishi, S. (2010). Distinct roles of synaptic transmission in direct and indirect striatal pathways to reward and aversive behavior. *Neuron*, 66(6), 896–907.
-   - **Key contribution:** Dopamine's differential effects on D1/D2 pathways; inverse temperature effects.
-   - **Citation:** doi:10.1016/j.neuron.2010.05.011
+6. Reynolds, J. N. J., & Wickens, J. R. (2002). Dopamine-dependent plasticity of corticostriatal synapses. *Neural Networks*, 15(4–6), 507–521.
+   - **Key contribution:** Dopamine-dependent synaptic plasticity mechanism in striatum; links phasic dopamine to corticostriatal weight changes (learning rate).
+   - **Citation:** doi:10.1016/s0893-6080(02)00045-x
 
 ### Temporal Dynamics and Temporal Shift
 
@@ -549,9 +549,9 @@ Expected: high arousal ↔ high β.
    - **Key contribution:** Ventral striatum's role in reward timing predictions.
    - **Citation:** doi:10.1523/JNEUROSCI.3270-09.2009
 
-10. Yun, I. A., Wakabayashi, K. T., Fields, H. L., & Nicola, S. M. (2004). The ventral tegmental area is required for the behavioral and nucleus accumbens neuronal firing responses to incentive cues. *Journal of Neuroscience*, 24(12), 2923–2933.
-    - **Key contribution:** Ventral striatum-VTA feedback for reward prediction.
-    - **Citation:** doi:10.1523/JNEUROSCI.5282-03.2004
+10. Hollerman, J. R., & Schultz, W. (1998). Dopamine neurons report an error in the temporal prediction of reward during learning. *Nature Neuroscience*, 1(4), 304–309.
+    - **Key contribution:** Dopamine neurons encode errors in both occurrence and timing of reward; supports γ as temporal credit assignment window.
+    - **Citation:** doi:10.1038/1124
 
 ### Inverse Temperature and Decision-Making
 
@@ -559,9 +559,9 @@ Expected: high arousal ↔ high β.
     - **Key contribution:** Softmax policy and inverse temperature parameter fitting from behavior.
     - **Citation:** Oxford University Press
 
-12. Wiecki, T. V., Sofer, I., & Frank, M. J. (2013). From hoped to feared goal: Prospect theory in the basal ganglia. *NeuroImage*, 72, 16–22.
-    - **Key contribution:** Inverse temperature changes with task difficulty and risk.
-    - **Citation:** doi:10.1016/j.neuroimage.2013.01.005
+12. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.
+    - **Key contribution:** Tonic striatal dopamine sets the exploration-exploitation trade-off; increasing tonic dopamine decreases exploration (increases β).
+    - **Citation:** doi:10.3389/fnins.2012.00009
 
 ### SARSA and On-Policy Learning
 
