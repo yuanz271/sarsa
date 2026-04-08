@@ -189,24 +189,27 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 ---
 
-## The Complete VTA↔Striatum Circuit
+## The VTA→Striatum Circuit
 
 ```
 SENSORY INPUT
       ↓
-STRIATUM (stores Q values, selects action)
+STRIATUM (encodes action values, selects action)   [? interpretive]
       ↓
 OUTCOME: Reward r₂, Next State s₂
       ↓
-VTA DOPAMINE: δ = r₂ + γ·Q(s₂,a₂) - Q(s₁,a₁)
+VTA DOPAMINE: computes RPE ≈ δ                    [✓ Schultz 1997]
       ↓
-DOPAMINE RELEASE → STRIATUM (50–100 ms)
+DOPAMINE RELEASE → STRIATUM (~50 ms onset)        [✓ Hollerman & Schultz 1998]
       ↓
-SYNAPTIC PLASTICITY: ΔW ∝ α·δ·eligibility(t)
+SYNAPTIC PLASTICITY: ΔW ∝ δ · eligibility(t)     [✓ Reynolds 2002]
       ↓
-Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
+ACTION VALUE UPDATE                               [? interpretive]
       ↓  (loop)
 ```
+
+- NAc → VTA feedback: GABAergic inhibitory  [✓ Xia et al. 2011]
+- Feedback encodes value predictions         [? not established]
 
 <p class="cite">Schultz et al. (1997); Montague et al. (1996)</p>
 
@@ -216,9 +219,9 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 #### What IS established
 
-- Dopamine firing patterns are consistent with TD error signals
-- VTA→striatum circuit implements key computations of TD learning
-- RL models fit behavioral data better than simpler alternatives
+- Dopamine firing patterns are consistent with TD error signals [Schultz et al. 1997]
+- VTA→striatum circuit implements key computations of TD learning [Montague et al. 1996]
+- RL models fit behavioral data better than simpler alternatives [Daw 2011]
 
 #### What is NOT proved
 
@@ -265,30 +268,6 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 ---
 
-## The Rescorla-Wagner (RW) Model
-
-$$\Delta V_i = \alpha_i \beta \left(\lambda - \sum_j V_j\right)$$
-
-- **Vᵢ** — associative strength of stimulus i (learned value)
-- **αᵢ** — salience of stimulus i (cue-specific learning rate)
-- **β** — learning rate for the outcome
-- **λ** — maximum conditioning supported by the outcome
-- **(λ − ΣVⱼ)** — prediction error: how surprising was the outcome?
-
-#### Relation to SARSA
-
-| RW Model | SARSA / TD |
-|----------|------------|
-| λ − ΣVⱼ | r + γ·Q(s₂,a₂) − Q(s₁,a₁) = δ |
-| Associative strength V | Action-value Q(s, a) |
-| Single timestep, no γ | Sequential across time with γ |
-
-**Key advance of TD over RW:** TD assigns credit across time via γ; RW has no temporal depth
-
-<p class="cite">Rescorla & Wagner (1972)</p>
-
----
-
 ## References (1/2)
 
 1. Rescorla, R. A., & Wagner, A. R. (1972). A theory of Pavlovian conditioning. In *Classical Conditioning II: Current Research and Theory* (pp. 64–99). Appleton-Century-Crofts.
@@ -316,3 +295,29 @@ $$\Delta V_i = \alpha_i \beta \left(\lambda - \sum_j V_j\right)$$
 10. Daw, N. D. (2011). Trial-by-trial data analysis using computational models. *Decision Making, Affect, and Learning*, 3–38.
 
 11. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.
+
+12. Xia, Y., Driscoll, J. R., Wilbrecht, L., Margolis, E. B., Fields, H. L., & Hjelmstad, G. O. (2011). Nucleus accumbens medium spiny neurons target non-dopaminergic neurons in the ventral tegmental area. *Journal of Neuroscience*, 31(21), 7811–7816.
+
+---
+
+## The Rescorla-Wagner (RW) Model
+
+$$\Delta V_i = \alpha_i \beta \left(\lambda - \sum_j V_j\right)$$
+
+- **Vᵢ** — associative strength of stimulus i (learned value)
+- **αᵢ** — salience of stimulus i (cue-specific learning rate)
+- **β** — learning rate for the outcome
+- **λ** — maximum conditioning supported by the outcome
+- **(λ − ΣVⱼ)** — prediction error: how surprising was the outcome?
+
+#### Relation to SARSA
+
+| RW Model | SARSA / TD |
+|----------|------------|
+| λ − ΣVⱼ | r + γ·Q(s₂,a₂) − Q(s₁,a₁) = δ |
+| Associative strength V | Action-value Q(s, a) |
+| Single timestep, no γ | Sequential across time with γ |
+
+**Key advance of TD over RW:** TD assigns credit across time via γ; RW has no temporal depth
+
+<p class="cite">Rescorla & Wagner (1972)</p>
