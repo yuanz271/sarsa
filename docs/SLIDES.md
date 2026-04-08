@@ -39,12 +39,69 @@ How Dopamine Implements SARSA Learning in the Brain
 
 ---
 
-## What is Prediction Error?
+## Reinforcement Learning
+
+- An **agent** interacts with an **environment** over time
+- At each step: observe state **s**, take action **a**, receive reward **r**
+- Goal: learn a **policy** π(a|s) that maximizes cumulative future reward
+
+#### Key concepts
+
+- **Policy:** how the agent selects actions given a state
+- **Reward:** scalar feedback signal from the environment
+- **Value:** expected cumulative reward from a state (or state-action pair, **Q**)
+
+<p class="cite">Sutton & Barto (2018)</p>
+
+---
+
+## Q: Expected Cumulative Reward
+
+Q(s, a) is the **action-value function** — expected cumulative discounted reward when taking action **a** in state **s** and following the current policy thereafter:
+
+$$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = s, a_0 = a\right]$$
+
+*"How good is it to take action a from state s?"*
+
+- **s** — current state (sensory context, task state)
+- **a** — action taken
+- **r** — reward received after the action
+- **γ** — discount factor (how much future rewards are worth)
+
+<p class="cite">Sutton & Barto (2018)</p>
+
+---
+
+## TD Learning and SARSA
+
+- **Temporal-Difference (TD) learning:** Learn from experience by updating predictions step-by-step
+- **SARSA:** On-policy TD algorithm — updates Q using the action **actually taken** next (not the best possible action)
+
+#### SARSA Update
+
+- Q(s₁, a₁) ← Q(s₁, a₁) + α · [r₂ + γ·Q(s₂, a₂) − Q(s₁, a₁)]
+
+#### Key Parameters
+
+- **α** (alpha) — learning rate: how fast Q-values update
+- **β** (beta) — inverse temperature: how deterministic action selection is
+- **γ** (gamma) — discount factor: how much future rewards are valued
+
+#### Core Question
+
+- What do these parameters correspond to **in the brain**?
+
+<p class="cite">Sutton & Barto (2018)</p>
+
+---
+
+## Prediction Error
 
 #### Prediction Error (PE)
 
 - Definition: Discrepancy between expected outcome and actual outcome
-- Formal definition: δ = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
+- Since Q is cumulative: Q(s₁, a₁) - γ·Q(s₂, a₂) = predicted reward at step 1
+- PE is the residual: **δ = r₂ - [Q(s₁, a₁) - γ·Q(s₂, a₂)]** = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
 - Acts as a learning signal
 
 #### Dopamine Responses
@@ -54,32 +111,6 @@ How Dopamine Implements SARSA Learning in the Brain
 - Negative PE (reward < expected): Dopamine pause ↓
 
 <p class="cite">Schultz et al. (1997)</p>
-
----
-
-## PE-Relevant Brain Regions
-
-- **VTA:** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
-- **SNc:** Secondary dopamine source; encodes RPE; motor control
-- **Nucleus Accumbens:** PE receiver; stores Q(s,a); reward timing
-- **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
-- **PFC & Hippocampus:** Planning and memory updates
-
-<p class="cite">Schultz (2015)</p>
-
----
-
-## Temporal-Difference Learning & Dopamine
-
-- Dopamine neurons encode the temporal-difference error δ
-- SARSA update: Q(s₁, a₁) ← Q(s₁, a₁) + α·[r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)]
-- VTA computes: δ = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
-- Dopamine release strength ∝ δ magnitude
-- Striatal synapses update: ΔW ∝ α·δ
-- Dopamine firing matches TD error (r > 0.7)
-- Temporal shift of dopamine follows TD credit assignment
-
-<p class="cite">Montague et al. (1996); Sutton & Barto (2018)</p>
 
 ---
 
@@ -146,6 +177,32 @@ How Dopamine Implements SARSA Learning in the Brain
 
 ---
 
+## Temporal-Difference Learning & Dopamine
+
+- Dopamine neurons encode the temporal-difference error δ
+- SARSA update: Q(s₁, a₁) ← Q(s₁, a₁) + α·[r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)]
+- VTA computes: δ = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
+- Dopamine release strength ∝ δ magnitude
+- Striatal synapses update: ΔW ∝ α·δ
+- Dopamine firing matches TD error (r > 0.7)
+- Temporal shift of dopamine follows TD credit assignment
+
+<p class="cite">Montague et al. (1996); Sutton & Barto (2018)</p>
+
+---
+
+## PE-Relevant Brain Regions
+
+- **VTA:** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
+- **SNc:** Secondary dopamine source; encodes RPE; motor control
+- **Nucleus Accumbens:** PE receiver; stores Q(s,a); reward timing
+- **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
+- **PFC & Hippocampus:** Planning and memory updates
+
+<p class="cite">Schultz (2015)</p>
+
+---
+
 ## The Complete VTA↔Striatum Circuit
 
 ```
@@ -199,28 +256,54 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
 
 ---
 
+## The Rescorla-Wagner (RW) Model
+
+$$\Delta V_i = \alpha_i \beta \left(\lambda - \sum_j V_j\right)$$
+
+- **Vᵢ** — associative strength of stimulus i (learned value)
+- **αᵢ** — salience of stimulus i (cue-specific learning rate)
+- **β** — learning rate for the outcome
+- **λ** — maximum conditioning supported by the outcome
+- **(λ − ΣVⱼ)** — prediction error: how surprising was the outcome?
+
+#### Relation to SARSA
+
+| RW Model | SARSA / TD |
+|----------|------------|
+| λ − ΣVⱼ | r + γ·Q(s₂,a₂) − Q(s₁,a₁) = δ |
+| Associative strength V | Action-value Q(s, a) |
+| Single timestep, no γ | Sequential across time with γ |
+
+**Key advance of TD over RW:** TD assigns credit across time via γ; RW has no temporal depth
+
+<p class="cite">Rescorla & Wagner (1972)</p>
+
+---
+
 ## References (1/2)
 
-1. Schultz, W., Dayan, P., & Montague, P. R. (1997). A neural substrate of prediction and reward. *Science*, 275(5306), 1593–1599.
+1. Rescorla, R. A., & Wagner, A. R. (1972). A theory of Pavlovian conditioning. In *Classical Conditioning II: Current Research and Theory* (pp. 64–99). Appleton-Century-Crofts.
 
-2. Montague, P. R., Dayan, P., & Sejnowski, T. J. (1996). A framework for mesencephalic dopamine systems based on predictive Hebbian learning. *Journal of Neuroscience*, 16(5), 1936–1947.
+2. Schultz, W., Dayan, P., & Montague, P. R. (1997). A neural substrate of prediction and reward. *Science*, 275(5306), 1593–1599.
 
-3. Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press.
+3. Montague, P. R., Dayan, P., & Sejnowski, T. J. (1996). A framework for mesencephalic dopamine systems based on predictive Hebbian learning. *Journal of Neuroscience*, 16(5), 1936–1947.
 
-4. Wise, R. A. (2004). Dopamine, learning and motivation. *Nature Reviews Neuroscience*, 5(6), 483–494.
+4. Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press.
 
-5. Reynolds, J. N. J., & Wickens, J. R. (2002). Dopamine-dependent plasticity of corticostriatal synapses. *Neural Networks*, 15(4–6), 507–521.
+5. Wise, R. A. (2004). Dopamine, learning and motivation. *Nature Reviews Neuroscience*, 5(6), 483–494.
+
+6. Reynolds, J. N. J., & Wickens, J. R. (2002). Dopamine-dependent plasticity of corticostriatal synapses. *Neural Networks*, 15(4–6), 507–521.
 
 ---
 
 ## References (2/2)
 
-6. Pan, W. X., Schmidt, R., Wickens, J. R., & Hyland, B. I. (2005). Dopamine cells respond to predicted events during classical conditioning. *Journal of Neuroscience*, 25(26), 6235–6242.
+7. Pan, W. X., Schmidt, R., Wickens, J. R., & Hyland, B. I. (2005). Dopamine cells respond to predicted events during classical conditioning. *Journal of Neuroscience*, 25(26), 6235–6242.
 
-7. Schultz, W. (2015). Neuronal reward and decision signals: From theories to data. *Physiological Reviews*, 95(3), 853–951.
+8. Schultz, W. (2015). Neuronal reward and decision signals: From theories to data. *Physiological Reviews*, 95(3), 853–951.
 
-8. Hollerman, J. R., & Schultz, W. (1998). Dopamine neurons report an error in the temporal prediction of reward during learning. *Nature Neuroscience*, 1(4), 304–309.
+9. Hollerman, J. R., & Schultz, W. (1998). Dopamine neurons report an error in the temporal prediction of reward during learning. *Nature Neuroscience*, 1(4), 304–309.
 
-9. Daw, N. D. (2011). Trial-by-trial data analysis using computational models. *Decision Making, Affect, and Learning*, 3–38.
+10. Daw, N. D. (2011). Trial-by-trial data analysis using computational models. *Decision Making, Affect, and Learning*, 3–38.
 
-10. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.
+11. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.
