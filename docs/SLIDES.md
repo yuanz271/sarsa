@@ -49,8 +49,6 @@ style: |
 - **Reward:** scalar feedback signal from the environment
 - **Value:** expected cumulative reward from a state (or state-action pair, **Q**)
 
-<p class="cite">Sutton & Barto (2018)</p>
-
 ---
 
 ## Q: Expected Cumulative Reward
@@ -65,8 +63,6 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 - **a** — action taken
 - **r** — reward received after the action
 - **γ** — discount factor (how much future rewards are worth)
-
-<p class="cite">Sutton & Barto (2018)</p>
 
 ---
 
@@ -88,8 +84,6 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 #### Core Question
 
 - What do these parameters correspond to **in the brain**?
-
-<p class="cite">Sutton & Barto (2018)</p>
 
 ---
 
@@ -219,7 +213,7 @@ ACTION VALUE UPDATE                               [? interpretive]
   - **α** ↔ dopamine-dependent synaptic plasticity
   - **γ** ↔ temporal credit assignment in striatum
   - **β** ↔ tonic dopamine and exploration-exploitation
-- Dopamine firing is consistent with TD error [Schultz et al. 1997]
+- Dopamine firing is consistent with TD error
 - SARSA is a **parsimonious proxy** — not the brain's algorithm, but a useful lens
 - Open questions: continuous vs. discrete time, exact credit assignment, alternative RL models
 - Fitting SARSA to behavior may offer **approximate neural readouts**
