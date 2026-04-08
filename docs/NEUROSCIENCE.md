@@ -1,6 +1,6 @@
-# The Neural Signature of Prediction Error and SARSA
+# SARSA: Reward Learning in Three Parameters
 
-**Mechanistic Connection Between Dopamine, the VTA→Striatum System, and Temporal-Difference Reinforcement Learning**
+**Reference document for the relationship between SARSA parameters (α, β, γ), dopamine, and the VTA→Striatum system**
 
 ---
 
@@ -10,8 +10,8 @@
 2. [Brain Regions and PE Signaling](#brain-regions-and-pe-signaling)
 3. [Temporal-Difference Learning and Dopamine](#temporal-difference-learning-and-dopamine)
 4. [SARSA Parameters as Neural Correlates](#sarsa-parameters-as-neural-correlates)
-5. [The Complete Circuit: VTA↔Striatum as SARSA Solver](#the-complete-circuit)
-6. [Falsifiable Predictions](#falsifiable-predictions)
+5. [The VTA→Striatum Circuit](#the-complete-circuit)
+6. [Hypotheses](#hypotheses)
 
 ---
 
@@ -217,7 +217,7 @@ Higher α → larger Q-value updates per error.
 | **Dopamine effect** | Strong, sustained release | Weak or transient release |
 | **Receptor signaling** | Robust D1/D2 activation | Modest activation |
 | **cAMP cascade** | Strong kinase activation | Weak kinase activation |
-| **Synaptic change** | Rapid AMPA trafficking, spine growth | Slower plasticity, distributed updates |
+| **Synaptic change** | Rapid synaptic potentiation, spine growth | Slower plasticity, distributed updates |
 | **Learning speed** | Fast value updates (minutes) | Cautious updates (hours) |
 
 **Biological interpretation:**
@@ -315,7 +315,7 @@ params[3:] = user-defined parameters (e.g., hidden reward values)
 
 ---
 
-## The Complete Circuit: VTA↔Striatum as SARSA Solver
+## The VTA→Striatum Circuit
 
 ### Full Mechanistic Loop
 
@@ -323,7 +323,7 @@ params[3:] = user-defined parameters (e.g., hidden reward values)
 SENSORY INPUT
     ↓
 STRIATUM:
-  • Stores Q(s, a) in synaptic weights
+  • Encodes action values in synaptic weights
   • Integrates dopamine for plasticity (α) and gain (β)
   • Reads out policy: P(a|s) = softmax(β · Q(s, :))
     ↓
@@ -352,8 +352,8 @@ WEIGHT UPDATE:
   Q(s₁, a₁) ← Q(s₁, a₁) + ΔW
     ↓
 VENTRAL STRIATUM FEEDBACK:
-  • Encodes predictions about reward timing
-  • Refines VTA dopamine's future value term: γ·Q(s₂, a₂)
+  • NAc → VTA projection is GABAergic (inhibitory) [Xia et al. 2011]
+  • Whether this feedback encodes value predictions is not established
   • Closes the loop
 ```
 
@@ -402,9 +402,11 @@ VENTRAL STRIATUM FEEDBACK:
 
 ---
 
-## Falsifiable Predictions
+## Hypotheses
 
-If the VTA→striatum dopamine system truly implements SARSA, the following predictions should hold:
+**Note:** The following are reasonable hypotheses constructed from the SARSA↔dopamine mapping, not established predictions from the literature. Specific thresholds are illustrative, not empirically grounded.
+
+If the VTA→striatum dopamine system implements computations consistent with SARSA:
 
 ### 1. **Dopamine PE Signal Matches SARSA TD Error**
 
@@ -416,7 +418,7 @@ Record VTA dopamine during task.
 Fit SARSA to behavior.
 Compute δ(t) for each transition.
 Regress dopamine firing on δ(t).
-Expected result: r > 0.6, p < 0.05
+Expected result: significant positive correlation
 ```
 
 ---
@@ -443,7 +445,7 @@ Low-γ subjects: expect dopamine stays near reward.
 ```
 Measure synaptic potentiation (AMPA/NMDA ratio, spine volume) in striatum.
 Correlate with fitted α.
-Expected: r > 0.5
+Expected: positive correlation
 ```
 
 ---
@@ -495,7 +497,7 @@ Expected: high arousal ↔ high β.
 | **Neural** | α, β, γ, δ | Dopamine release, striatal plasticity, timing feedback | Implement learning rate, policy stochasticity, temporal discounting, error signal |
 | **Behavioral** | Choice probability, response time, sensitivity to reward | Observable actions | Manifest learning as behavior |
 
-**The core insight:** Your SARSA parameters are not just mathematical abstractions—they are **direct readouts of neural learning mechanisms**. Fitting SARSA to behavioral data gives you a window into the subject's dopaminergic and striatal function.
+**The core insight:** SARSA is a parsimonious proxy—not the brain's algorithm, but a useful lens. Fitted parameters (α, β, γ) may serve as **approximate neural readouts**. The goal is scientific understanding, not proving SARSA is the brain's algorithm.
 
 ---
 
@@ -574,34 +576,6 @@ Expected: high arousal ↔ high β.
 
 ---
 
-## Suggested Citation Format for Slides
+## Companion Slides
 
-When presenting, you may want to cite in this format for clarity:
-
-**For dopamine + prediction error:**
-> Schultz et al. (1997, *Science*) demonstrated that dopamine neurons in the ventral tegmental area encode reward prediction errors precisely as predicted by temporal-difference learning theory.
-
-**For SARSA algorithm:**
-> Sutton & Barto (2018, *RL: An Introduction*) provide the computational framework underlying SARSA and temporal-difference learning.
-
-**For neural implementation:**
-> Montague, Dayan, & Sejnowski (1996, *JNeuroSci*) proposed the theoretical framework linking dopamine dynamics to temporal-difference learning rules.
-
----
-
-## For Slide Conversion
-
-**Suggested slide breaks:**
-
-1. **Title slide:** Neural Signature of Prediction Error
-2. **PE definition & types**
-3. **Brain anatomy (VTA, striatum, regions)**
-4. **TD learning overview**
-5. **α (learning rate) mapping**
-6. **γ (discount factor) mapping**
-7. **β (inverse temperature) mapping**
-8. **Full circuit diagram**
-9. **Falsifiable predictions (1-2 per slide)**
-10. **Summary: Three-level isomorphism**
-
-Each section above is self-contained and suitable for one or more slides.
+See `docs/SLIDES.md` for the Marp presentation derived from this document.
