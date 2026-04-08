@@ -79,7 +79,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 #### SARSA Update
 
-- Q(s₁, a₁) ← Q(s₁, a₁) + α · [r₂ + γ·Q(s₂, a₂) − Q(s₁, a₁)]
+- Q(sₜ, aₜ) ← Q(sₜ, aₜ) + α · [rₜ₊₁ + γ·Q(sₜ₊₁, aₜ₊₁) − Q(sₜ, aₜ)]
 
 #### Key Parameters
 
@@ -98,8 +98,8 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 ## Prediction Error (PE)
 
 - Definition: Discrepancy between expected outcome and actual outcome
-- Since Q is cumulative: Q(s₁, a₁) - γ·Q(s₂, a₂) = predicted reward at step 1
-- PE is the residual: **δ = r₂ - [Q(s₁, a₁) - γ·Q(s₂, a₂)]** = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
+- Since Q is cumulative: Q(sₜ, aₜ) - γ·Q(sₜ₊₁, aₜ₊₁) = predicted reward at step t
+- PE is the residual: **δₜ = rₜ₊₁ - [Q(sₜ, aₜ) - γ·Q(sₜ₊₁, aₜ₊₁)]** = rₜ₊₁ + γ·Q(sₜ₊₁, aₜ₊₁) - Q(sₜ, aₜ)
 - Acts as a learning signal
 
 #### Dopamine Responses
@@ -141,7 +141,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 #### Neural Substrate
 
 - Striatum predicts reward timing
-- Enables ventral tegmental area (VTA) to compute γ·Q(s₂, a₂)
+- Enables ventral tegmental area (VTA) to compute γ·Q(sₜ₊₁, aₜ₊₁)
 - Ventral striatum lesions disrupt timing (not quantity) coding
 
 #### Temporal Shift Phenomenon
@@ -194,7 +194,7 @@ SENSORY INPUT
       ↓
 STRIATUM (encodes action values, selects action)   [? interpretive]
       ↓
-OUTCOME: Reward r₂, Next State s₂
+OUTCOME: Reward rₜ₊₁, Next State sₜ₊₁
       ↓
 VTA DOPAMINE: computes RPE ≈ δ                    [✓ Schultz 1997]
       ↓
@@ -272,7 +272,7 @@ $$\Delta V_i = \alpha_i \beta \left(\lambda - \sum_j V_j\right)$$
 
 | RW Model | SARSA / TD |
 |----------|------------|
-| λ − ΣVⱼ | r + γ·Q(s₂,a₂) − Q(s₁,a₁) = δ |
+| λ − ΣVⱼ | rₜ₊₁ + γ·Q(sₜ₊₁,aₜ₊₁) − Q(sₜ,aₜ) = δₜ |
 | Associative strength V | Action-value Q(s, a) |
 | Single timestep, no γ | Sequential across time with γ |
 
