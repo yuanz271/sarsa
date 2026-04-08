@@ -185,7 +185,7 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 #### How it works
 
 - A `transition_reward_func` computes reward on-the-fly using all parameters
-- Optimizer fits all 5 parameters simultaneously via cross-entropy loss
+- Optimizer fits all parameters simultaneously via cross-entropy loss
 - Reward function is **learned**, not assumed
 
 ---
