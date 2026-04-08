@@ -167,6 +167,29 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 
 ---
 
+## Extension: Trainable Reward Parameters
+
+- Standard SARSA assumes rewards are given
+- Our extension: **learn the hidden reward structure** from behavior
+
+#### Parameter vector
+
+- params[0–2] = α, β, γ (standard SARSA)
+- params[3:] = **task-specific reward parameters** (jointly optimized)
+
+#### Example: threat-conditioning task
+
+- params[3] = **shock penalty** — how aversive is the shock?
+- params[4] = **avoidance reward** — how rewarding is successful escape?
+
+#### How it works
+
+- A `transition_reward_func` computes reward on-the-fly using all parameters
+- Optimizer fits all 5 parameters simultaneously via cross-entropy loss
+- Reward function is **learned**, not assumed
+
+---
+
 ## Relevant Brain Regions
 
 - **Ventral Tegmental Area (VTA):** Dopamine generator; signals reward prediction error (RPE); broadcasts to striatum, amygdala, prefrontal cortex
