@@ -179,11 +179,11 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 ## Relevant Brain Regions
 
-- **VTA:** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
-- **SNc:** Secondary dopamine source; encodes RPE; motor control
-- **Nucleus Accumbens:** PE receiver; stores Q(s,a); reward timing
+- **Ventral Tegmental Area (VTA):** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
+- **Substantia Nigra pars compacta (SNc):** Secondary dopamine source; encodes RPE; motor control
+- **Nucleus Accumbens (NAc):** PE receiver; encodes action values; reward timing
 - **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
-- **PFC & Hippocampus:** Planning and memory updates
+- **Prefrontal Cortex (PFC) & Hippocampus:** Planning and memory updates
 
 <p class="cite">Schultz (2015)</p>
 
