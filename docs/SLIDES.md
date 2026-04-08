@@ -179,9 +179,11 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 - **Substantia Nigra pars compacta (SNc):** Secondary dopamine source; signals RPE; motor control
 - **Nucleus Accumbens (NAc):** PE receiver; represents action values; reward timing
 - **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
-- **Prefrontal Cortex & Hippocampus:** Planning and memory updates
+- **Orbitofrontal Cortex (OFC):** Represents expected reward value; updates stimulus-reward associations
+- **Prefrontal Cortex (PFC):** Integrates value signals for planning and decision-making
+- **Hippocampus:** Memory prediction errors; updates episodic representations
 
-<p class="cite">Schultz (2015)</p>
+<p class="cite">Schultz (2015); O'Doherty et al. (2003)</p>
 
 ---
 
@@ -253,6 +255,8 @@ ACTION VALUE UPDATE                               [? interpretive]
 11. Humphries, M. D., Khamassi, M., & Gurney, K. (2012). Dopaminergic control of the exploration-exploitation trade-off via the basal ganglia. *Frontiers in Neuroscience*, 6, 9.
 
 12. Xia, Y., Driscoll, J. R., Wilbrecht, L., Margolis, E. B., Fields, H. L., & Hjelmstad, G. O. (2011). Nucleus accumbens medium spiny neurons target non-dopaminergic neurons in the ventral tegmental area. *Journal of Neuroscience*, 31(21), 7811–7816.
+
+13. O'Doherty, J. P., Dayan, P., Friston, K., Critchley, H., & Dolan, R. J. (2003). Temporal difference models and reward-related learning in the human brain. *Neuron*, 38(2), 329–337.
 
 ---
 
