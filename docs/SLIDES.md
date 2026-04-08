@@ -183,7 +183,7 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 - **Prefrontal Cortex (PFC):** Integrates value signals for planning and decision-making
 - **Hippocampus:** Memory prediction errors; updates episodic representations
 
-<p class="cite">Schultz (2015); O'Doherty et al. (2003)</p>
+<p class="cite">Schultz et al. (1997); Schultz (2015); O'Doherty et al. (2003)</p>
 
 ---
 
