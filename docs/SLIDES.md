@@ -39,7 +39,7 @@ How Dopamine Implements SARSA Learning in the Brain
 
 ---
 
-## Reinforcement Learning
+## Reinforcement Learning (RL)
 
 - An **agent** interacts with an **environment** over time
 - At each step: observe state **s**, take action **a**, receive reward **r**
@@ -95,9 +95,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 ---
 
-## Prediction Error
-
-#### Prediction Error (PE)
+## Prediction Error (PE)
 
 - Definition: Discrepancy between expected outcome and actual outcome
 - Since Q is cumulative: Q(s₁, a₁) - γ·Q(s₂, a₂) = predicted reward at step 1
@@ -122,7 +120,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 #### Neural Substrate
 
-- High α: Strong dopamine → rapid AMPA trafficking → fast learning
+- High α: Strong dopamine → rapid synaptic potentiation → fast learning
 - Low α: Weak dopamine → slow plasticity → stable learning
 
 #### Observable Correlates
@@ -143,7 +141,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 #### Neural Substrate
 
 - Striatum predicts reward timing
-- Enables VTA to compute γ·Q(s₂, a₂)
+- Enables ventral tegmental area (VTA) to compute γ·Q(s₂, a₂)
 - Ventral striatum lesions disrupt timing (not quantity) coding
 
 #### Temporal Shift Phenomenon
@@ -179,11 +177,11 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 ## Relevant Brain Regions
 
-- **Ventral Tegmental Area (VTA):** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
+- **Ventral Tegmental Area (VTA):** Dopamine generator; computes reward prediction error (RPE); broadcasts to striatum, amygdala, prefrontal cortex
 - **Substantia Nigra pars compacta (SNc):** Secondary dopamine source; encodes RPE; motor control
 - **Nucleus Accumbens (NAc):** PE receiver; encodes action values; reward timing
 - **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
-- **Prefrontal Cortex (PFC) & Hippocampus:** Planning and memory updates
+- **Prefrontal Cortex & Hippocampus:** Planning and memory updates
 
 <p class="cite">Schultz (2015)</p>
 
@@ -215,56 +213,16 @@ ACTION VALUE UPDATE                               [? interpretive]
 
 ---
 
-## Does the Brain Implement RL?
+## SARSA as a Window into the Brain
 
-#### What IS established
-
-- Dopamine firing patterns are consistent with TD error signals [Schultz et al. 1997]
-- VTA→striatum circuit implements key computations of TD learning [Montague et al. 1996]
-- RL models fit behavioral data better than simpler alternatives [Daw 2011]
-
-#### What is NOT proved
-
-- Brain operates in continuous time; RL models use discrete steps
-- Whether γ is truly implemented or approximated is unclear
-- Exact credit assignment mechanism is still debated
-- Many RL variants exist; SARSA is one parsimonious choice
-
-#### The right framing
-
-- SARSA is a **parsimonious proxy** — useful, not necessarily correct
-- Fitted parameters (α, β, γ) are proxies for neural mechanisms, not direct measurements
-- The goal is **scientific understanding**, not proving SARSA is the brain's algorithm
-
-<p class="cite">Montague et al. (1996); Schultz et al. (1997)</p>
-
----
-
-## Falsifiable Predictions (1/2)
-
-- **Pred 1:** Dopamine PE matches SARSA TD error (r > 0.6)
-- **Pred 2:** Temporal shift of dopamine reflects γ (high-γ → large shift)
-- **Pred 3:** Synaptic plasticity correlates with α (r > 0.5)
-- **Pred 4:** β correlates with tonic dopamine (high β ↔ high dopamine)
-
-<p class="cite">Schultz et al. (1997); Pan et al. (2005); Reynolds & Wickens (2002); Humphries et al. (2012)</p>
-
----
-
-## Falsifiable Predictions (2/2)
-
-- **Pred 5:** Ventral striatum lesions disrupt timing (γ ↓, α&β stable)
-- **Pred 6:** β increases with arousal/engagement (alert ↔ high β)
-
-#### Three-Level Isomorphism
-
-- **Computational:** SARSA parameters (α, β, γ)
-- **Neural:** VTA dopamine, striatal plasticity, timing feedback
-- **Behavioral:** Observable choices, learning speed, strategy
-
-**Your SARSA parameters are direct neural readouts**
-
-<p class="cite">Hollerman & Schultz (1998); Schultz (2015)</p>
+- SARSA formalizes learning from prediction errors using three parameters:
+  - **α** ↔ dopamine-dependent synaptic plasticity
+  - **γ** ↔ temporal credit assignment in striatum
+  - **β** ↔ tonic dopamine and exploration-exploitation
+- Dopamine firing is consistent with TD error [Schultz et al. 1997]
+- SARSA is a **parsimonious proxy** — not the brain's algorithm, but a useful lens
+- Open questions: continuous vs. discrete time, exact credit assignment, alternative RL models
+- Fitting SARSA to behavior may offer **approximate neural readouts**
 
 ---
 
