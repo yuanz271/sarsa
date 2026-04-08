@@ -59,7 +59,7 @@ How Dopamine Implements SARSA Learning in the Brain
 
 Q(s, a) is the **action-value function** — expected cumulative discounted reward when taking action **a** in state **s** and following the current policy thereafter:
 
-$$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = s, a_0 = a\right]$$
+$$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| s_t, a_t\right]$$
 
 *"How good is it to take action a from state s?"*
 
