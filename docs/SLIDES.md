@@ -33,9 +33,7 @@ style: |
   }
 ---
 
-# The Neural Signature of Prediction Error and SARSA
-
-How Dopamine Implements SARSA Learning in the Brain
+# SARSA: Reward Learning in Three Parameters
 
 ---
 
