@@ -249,6 +249,29 @@ def make_quintuples(behavior_data):
     return quintuples
 
 
+def make_toy_quintuples(reward=2.0):
+    return [
+        sarsa.Quintuple(
+            s1=np.array([0], dtype=int),
+            a1=0,
+            r2=reward,
+            s2=np.array([0], dtype=int),
+            a2=0,
+        ),
+        sarsa.Quintuple(
+            s1=np.array([0], dtype=int),
+            a1=0,
+            r2=reward,
+            s2=np.array([0], dtype=int),
+            a2=0,
+        ),
+    ]
+
+
+def toy_transition_reward(params, state, action, new_state):
+    return new_state, params[3]
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -373,3 +396,55 @@ class TestSarsaRun:
         params = np.array([0.5, 1.0, 0.9, 1.0, 0.5])
         qs, logprob, error = sarsa.run(params, quintuples, initial_q, transition_reward)
         assert not np.allclose(qs[0], qs[-1])
+
+    def test_run_uses_observed_rewards_in_vanilla_mode(self):
+        quintuples = make_toy_quintuples(reward=2.0)
+        q0 = np.zeros((1, 2))
+        params = np.array([1.0, 1.0, 0.0])
+
+        qs, _, error = sarsa.run(params, quintuples, q0)
+
+        assert qs[1, 0, 0] == pytest.approx(2.0)
+        assert error[0] == pytest.approx(2.0)
+        assert quintuples[0].r2 == pytest.approx(2.0)
+
+    def test_run_recomputes_rewards_when_callback_is_provided(self):
+        quintuples = make_toy_quintuples(reward=2.0)
+        q0 = np.zeros((1, 2))
+        params = np.array([1.0, 1.0, 0.0, 5.0])
+
+        qs, _, error = sarsa.run(params, quintuples, q0, toy_transition_reward)
+
+        assert qs[1, 0, 0] == pytest.approx(5.0)
+        assert error[0] == pytest.approx(5.0)
+        assert quintuples[0].r2 == pytest.approx(2.0)
+
+    def test_run_rejects_missing_rewards_in_vanilla_mode(self):
+        quintuples = make_toy_quintuples(reward=np.nan)
+        q0 = np.zeros((1, 2))
+        params = np.array([1.0, 1.0, 0.0])
+
+        with pytest.raises(ValueError, match="finite observed rewards"):
+            sarsa.run(params, quintuples, q0)
+
+
+class TestSarsaFitVanilla:
+    def test_fit_completes_without_reward_callback(self):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.5, 1.0, 0.5])
+
+        params, loss, q_trajectory, action_prob = sarsa.fit(quintuples, q0, p0)
+
+        assert params.shape == (3,)
+        assert np.isfinite(loss)
+        assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
+        assert action_prob.shape == (len(quintuples), 2)
+
+    def test_fit_rejects_extra_params_without_reward_callback(self):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.5, 1.0, 0.5, 2.0])
+
+        with pytest.raises(ValueError, match="extra trainable parameters"):
+            sarsa.fit(quintuples, q0, p0, custom_param_bounds=[(0.0, None)])
