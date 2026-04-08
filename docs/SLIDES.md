@@ -175,9 +175,9 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 
 ## Relevant Brain Regions
 
-- **Ventral Tegmental Area (VTA):** Dopamine generator; computes reward prediction error (RPE); broadcasts to striatum, amygdala, prefrontal cortex
-- **Substantia Nigra pars compacta (SNc):** Secondary dopamine source; encodes RPE; motor control
-- **Nucleus Accumbens (NAc):** PE receiver; encodes action values; reward timing
+- **Ventral Tegmental Area (VTA):** Dopamine generator; signals reward prediction error (RPE); broadcasts to striatum, amygdala, prefrontal cortex
+- **Substantia Nigra pars compacta (SNc):** Secondary dopamine source; signals RPE; motor control
+- **Nucleus Accumbens (NAc):** PE receiver; represents action values; reward timing
 - **Dorsal Striatum:** Integrates sensory + reward PE; guides decisions
 - **Prefrontal Cortex & Hippocampus:** Planning and memory updates
 
@@ -190,11 +190,11 @@ $$Q(s_t, a_t) = \mathbb{E}\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k+1} \middle| 
 ```
 SENSORY INPUT
       ↓
-STRIATUM (encodes action values, selects action)   [? interpretive]
+STRIATUM (represents action values, selects action) [? interpretive]
       ↓
 OUTCOME: Reward rₜ₊₁, Next State sₜ₊₁
       ↓
-VTA DOPAMINE: computes RPE ≈ δ                    [✓ Schultz 1997]
+VTA DOPAMINE: signals RPE ≈ δ                     [✓ Schultz 1997]
       ↓
 DOPAMINE RELEASE → STRIATUM (~50 ms onset)        [✓ Hollerman & Schultz 1998]
       ↓

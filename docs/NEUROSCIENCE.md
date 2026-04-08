@@ -87,7 +87,7 @@ Temporal predictions of reward timing
 
 ### Nucleus Accumbens (Ventral Striatum)
 
-**Role:** Critical receiver of dopamine; computes and uses PE signals for value-based decision-making.
+**Role:** Critical receiver of dopamine; processes and uses PE signals for value-based decision-making.
 
 | Function | Mechanism |
 |----------|-----------|
