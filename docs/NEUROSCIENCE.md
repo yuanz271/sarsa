@@ -576,6 +576,4 @@ Expected: high arousal ↔ high β.
 
 ---
 
-## Companion Slides
 
-See `docs/SLIDES.md` for the Marp presentation derived from this document.
