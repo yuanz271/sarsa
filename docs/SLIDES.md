@@ -177,21 +177,7 @@ $$Q(s, a) = \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \middle| s_0 = 
 
 ---
 
-## Temporal-Difference Learning & Dopamine
-
-- Dopamine neurons encode the temporal-difference error δ
-- SARSA update: Q(s₁, a₁) ← Q(s₁, a₁) + α·[r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)]
-- VTA computes: δ = r₂ + γ·Q(s₂, a₂) - Q(s₁, a₁)
-- Dopamine release strength ∝ δ magnitude
-- Striatal synapses update: ΔW ∝ α·δ
-- Dopamine firing matches TD error (r > 0.7)
-- Temporal shift of dopamine follows TD credit assignment
-
-<p class="cite">Montague et al. (1996); Sutton & Barto (2018)</p>
-
----
-
-## PE-Relevant Brain Regions
+## Relevant Brain Regions
 
 - **VTA:** Dopamine generator; computes RPE; broadcasts to striatum, amygdala, PFC
 - **SNc:** Secondary dopamine source; encodes RPE; motor control
@@ -222,9 +208,32 @@ Q-VALUE UPDATE → VENTRAL STRIATUM → VTA FEEDBACK
       ↓  (loop)
 ```
 
-**This circuit IS SARSA running in real-time neural hardware**
-
 <p class="cite">Schultz et al. (1997); Montague et al. (1996)</p>
+
+---
+
+## Does the Brain Implement RL?
+
+#### What IS established
+
+- Dopamine firing patterns are consistent with TD error signals
+- VTA→striatum circuit implements key computations of TD learning
+- RL models fit behavioral data better than simpler alternatives
+
+#### What is NOT proved
+
+- Brain operates in continuous time; RL models use discrete steps
+- Whether γ is truly implemented or approximated is unclear
+- Exact credit assignment mechanism is still debated
+- Many RL variants exist; SARSA is one parsimonious choice
+
+#### The right framing
+
+- SARSA is a **parsimonious proxy** — useful, not necessarily correct
+- Fitted parameters (α, β, γ) are proxies for neural mechanisms, not direct measurements
+- The goal is **scientific understanding**, not proving SARSA is the brain's algorithm
+
+<p class="cite">Montague et al. (1996); Schultz et al. (1997)</p>
 
 ---
 
