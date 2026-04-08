@@ -233,7 +233,7 @@ def run(
     params: NDArray,
     quintuples: Sequence[Quintuple],
     q0: NDArray,
-    transition_reward_func: Callable,
+    transition_reward_func: Callable | None = None,
 ) -> tuple[NDArray, NDArray, NDArray]:
     """Execute SARSA over a sequence of quintuples.
 
@@ -245,9 +245,11 @@ def run(
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
         Initial Q-function prior to any updates.
-    transition_reward_func : Callable
-        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
-        the new state and reward for a state and an action given the parameter vector.
+    transition_reward_func : Callable or None, optional
+        Optional callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]``.
+        When omitted, SARSA uses each quintuple's observed ``r2`` directly without
+        modifying the input data. When provided, the callback may recompute the reward
+        (and must return the recorded next-state ``s2``).
 
     Returns
     -------
@@ -264,7 +266,8 @@ def run(
         If ``transition_reward_func`` returns a next-state that differs from
         the quintuple's recorded ``s2``.
     ValueError
-        If quintuples are empty or indices are incompatible with ``q0``.
+        If quintuples are empty, indices are incompatible with ``q0``, or vanilla mode
+        is asked to consume non-finite observed rewards.
     """
     _validate_quintuples(quintuples, q0)
     T = len(quintuples)
@@ -275,17 +278,24 @@ def run(
     for t in range(T):
         quintuple = quintuples[t]
         logprob[t] = action_logprob(params, q[*quintuple.s1])
-        s2, r2 = transition_reward_func(
-            params,
-            quintuple.s1,
-            quintuple.a1,
-            quintuple.s2,
-        )  # calculate stepwise net reward on the fly for trainable reward-related parameters
-        assert np.all(quintuple.s2 == s2)
-        # Reward depends on params; recompute each run while avoiding in-place mutation
-        # so callers can safely reuse the original quintuples.
-        quintuple_with_reward = replace(quintuple, r2=r2)
-        qs[t + 1], error[t] = update(params, quintuple_with_reward, q)
+        if transition_reward_func is None:
+            if not np.isfinite(quintuple.r2):
+                raise ValueError(
+                    "vanilla SARSA requires finite observed rewards in quintuple.r2"
+                )
+            qs[t + 1], error[t] = update(params, quintuple, q)
+        else:
+            s2, r2 = transition_reward_func(
+                params,
+                quintuple.s1,
+                quintuple.a1,
+                quintuple.s2,
+            )  # calculate stepwise net reward on the fly for trainable reward-related parameters
+            assert np.all(quintuple.s2 == s2)
+            # Reward depends on params; recompute each run while avoiding in-place mutation
+            # so callers can safely reuse the original quintuples.
+            quintuple_with_reward = replace(quintuple, r2=r2)
+            qs[t + 1], error[t] = update(params, quintuple_with_reward, q)
         q = qs[t + 1]
     return qs, logprob, error
 
@@ -295,7 +305,7 @@ def run_and_loss(
     static: Sequence[float | None],
     quintuples: Sequence[Quintuple],
     q0: NDArray,
-    transition_reward_func: Callable,
+    transition_reward_func: Callable | None = None,
 ) -> np.floating:
     """Run SARSA and compute the cross-entropy loss.
 
@@ -309,9 +319,9 @@ def run_and_loss(
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
         Initial Q-function prior to any updates.
-    transition_reward_func : Callable
-        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
-        the new state and reward for a state and an action given the parameter vector.
+    transition_reward_func : Callable or None, optional
+        Optional reward recomputation callback. When omitted, the loss is computed using
+        observed rewards already stored in ``quintuples``.
 
     Returns
     -------
@@ -332,9 +342,9 @@ def fit(
     quintuples: list,
     q0: NDArray,
     p0: NDArray,
-    static_params: list | None,
-    transition_reward_func: Callable,
-    custom_param_bounds: Sequence[tuple[float | None, float | None]],
+    static_params: list | None = None,
+    transition_reward_func: Callable | None = None,
+    custom_param_bounds: Sequence[tuple[float | None, float | None]] = (),
 ) -> tuple[NDArray, float, NDArray, NDArray]:
     """Optimise SARSA parameters against observed quintuples.
 
@@ -346,15 +356,16 @@ def fit(
         Initial Q-function prior to any updates.
     p0 : NDArray
         Initial guess for the optimiser across learnable parameters.
-    static_params : list[float | None] or None
-        Optional fixed parameter values matching the full parameter vector length
-        (``len(p0)`` plus any custom parameters).
-    transition_reward_func : Callable
-        Callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]`` returning
-        the new state and reward for a state and an action given the parameter vector.
-    custom_param_bounds : Sequence[tuple[float | None, float | None]]
-        Bounds applied to custom parameters; length must match the number of custom
-        parameters appended to ``p0``.
+    static_params : list[float | None] or None, optional
+        Optional fixed parameter values matching the full parameter vector length.
+    transition_reward_func : Callable or None, optional
+        Optional callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]``.
+        When omitted, SARSA fits vanilla 3-parameter dynamics using observed rewards stored
+        in ``quintuples``. When provided, the callback may recompute rewards from the full
+        parameter vector.
+    custom_param_bounds : Sequence[tuple[float | None, float | None]], optional
+        Bounds applied to custom parameters appended after ``(alpha, beta, gamma)``.
+        Leave empty for vanilla SARSA.
 
     Returns
     -------
@@ -373,23 +384,43 @@ def fit(
         Propagated from :func:`run` if the reward callback returns an
         inconsistent next-state, or if logprob/action lengths mismatch.
     ValueError
-        If quintuples are empty or indices are incompatible with ``q0``.
+        If quintuples are empty, indices are incompatible with ``q0``, parameter lengths
+        are inconsistent, or extra trainable parameters are requested without a reward
+        callback.
 
     Notes
     -----
     The underlying ``scipy.optimize.minimize`` may fail to converge.  Check the
     log output (INFO level) for the optimizer success flag and message.
     """
+    p0 = np.asarray(p0, dtype=float)
     if static_params is None:
         static_params = [None] * len(p0)
 
+    expected_param_count = len(PARAM_BOUNDS) + len(custom_param_bounds)
+    if len(p0) != expected_param_count:
+        raise ValueError(
+            "p0 length must match canonical plus custom parameters; "
+            f"got {len(p0)} and expected {expected_param_count}"
+        )
+    if len(static_params) != len(p0):
+        raise ValueError(
+            "static_params must match p0 length; "
+            f"got {len(static_params)} and {len(p0)}"
+        )
+    if transition_reward_func is None and len(p0) != len(PARAM_BOUNDS):
+        raise ValueError(
+            "extra trainable parameters require transition_reward_func"
+        )
+
     _validate_quintuples(quintuples, q0)
+    bounds = PARAM_BOUNDS + list(custom_param_bounds)
 
     res = optimize.minimize(
         run_and_loss,
         x0=p0,
         args=(static_params, quintuples, q0, transition_reward_func),
-        bounds=PARAM_BOUNDS + list(custom_param_bounds),
+        bounds=bounds,
     )
 
     loss = res.fun  # type: ignore
