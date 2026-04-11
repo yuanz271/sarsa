@@ -7,7 +7,7 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 ### Using pip (recommended for most users)
 
 ```bash
-pip install git+https://github.com/yuanz271/sarsa.git@v0.2.0
+pip install git+https://github.com/yuanz271/sarsa.git@v0.3.0
 ```
 
 ## Example
@@ -38,12 +38,6 @@ recompute them on the fly.
 
 ### Extended SARSA with user-defined parameters
 
-> **Note:** The `user_params` / `user_param_bounds` interface described below is
-> available on the current development branch and will appear in the next
-> release. The latest release (`v0.2.0`) still uses
-> `transition_reward_func(params, s1, a1, s2)` together with
-> `custom_param_bounds`.
-
 If rewards depend on additional latent or task-specific parameters, provide a
 `transition_reward_func(user_params, s1, a1, s2)` and matching
 `user_param_bounds`. In this mode, the optimizer still fits one flat parameter
@@ -51,6 +45,9 @@ vector, but the callback receives only the user-defined parameter block rather
 than the full SARSA vector. This refactor isolates user-defined parameters from
 the extension hook; the vanilla SARSA kernel still canonically interprets
 `alpha`, `beta`, and `gamma`.
+
+`custom_param_bounds` is still accepted as a deprecated compatibility alias in
+`fit()`.
 
 ## Data Assumptions
 

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-11
+
 ### Added
 - Added `concat_params()` and `split_params()` helpers to centralize packing and unpacking of flat optimizer vectors into SARSA-owned and user-defined parameter blocks.
 
@@ -40,6 +42,7 @@ All notable changes to this project will be documented in this file.
 - Kept experiment helpers next to the walkthrough so the `sarsa` package remains task-agnostic.
 - Computed stepwise rewards during `run` so `update` can consume them directly, keeping reward-related parameters consistent across trajectories.
 
-[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/yuanz271/sarsa/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yuanz271/sarsa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yuanz271/sarsa/releases/tag/v0.1.0
