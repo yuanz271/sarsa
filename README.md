@@ -51,6 +51,14 @@ If rewards depend on additional latent/task-specific parameters, provide a
 
 - `run()` now returns temporal-difference errors with length `T`, aligned with the number of transitions.
 
+## Documentation
+
+Full documentation is available on the [GitHub Wiki](https://github.com/yuanz271/sarsa/wiki):
+
+- [Algorithm](https://github.com/yuanz271/sarsa/wiki/Algorithm) — SARSA model and update rule
+- [Manual](https://github.com/yuanz271/sarsa/wiki/Manual) — API reference and usage guide
+- [Example](https://github.com/yuanz271/sarsa/wiki/Example) — Full walkthrough
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
