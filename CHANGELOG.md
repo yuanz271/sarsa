@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added `concat_params()` and `split_params()` helpers to centralize packing and unpacking of flat optimizer vectors into SARSA-owned and user-defined parameter blocks.
+
+### Changed
+- Refactored parameter handling around explicit `sarsa_params` and `user_params` blocks while preserving a single flat optimizer vector internally.
+- Changed the reward callback contract: `transition_reward_func` now receives `user_params` rather than the full parameter vector — **breaking change**.
+- Introduced `user_param_bounds` as the preferred `fit()` argument name; `custom_param_bounds` remains accepted as a deprecated compatibility alias.
+- Switched package metadata to file-backed dynamic versioning with `src/sarsa/__about__.py` as the single source of truth.
+
 ## [0.2.0] - 2026-04-11
 
 ### Added

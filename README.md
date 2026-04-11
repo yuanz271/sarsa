@@ -23,7 +23,7 @@ jupyter lab examples/sarsa.ipynb
 ### Vanilla SARSA
 
 When rewards are already stored in each `Quintuple.r2`, fit the canonical
-three-parameter model directly:
+SARSA parameter block directly:
 
 ```python
 params, loss, q_trajectory, action_prob = sarsa.fit(
@@ -36,11 +36,20 @@ params, loss, q_trajectory, action_prob = sarsa.fit(
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.
 
-### Extended SARSA with trainable reward parameters
+### Extended SARSA with user-defined parameters
 
-If rewards depend on additional latent/task-specific parameters, provide a
-`transition_reward_func` and matching `custom_param_bounds`. In this mode,
-`params[3:]` can be used to learn reward-related quantities jointly with
+> **Note:** The `user_params` / `user_param_bounds` interface described below is
+> available on the current development branch and will appear in the next
+> release. The latest release (`v0.2.0`) still uses
+> `transition_reward_func(params, s1, a1, s2)` together with
+> `custom_param_bounds`.
+
+If rewards depend on additional latent or task-specific parameters, provide a
+`transition_reward_func(user_params, s1, a1, s2)` and matching
+`user_param_bounds`. In this mode, the optimizer still fits one flat parameter
+vector, but the callback receives only the user-defined parameter block rather
+than the full SARSA vector. This refactor isolates user-defined parameters from
+the extension hook; the vanilla SARSA kernel still canonically interprets
 `alpha`, `beta`, and `gamma`.
 
 ## Data Assumptions
