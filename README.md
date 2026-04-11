@@ -4,7 +4,13 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 
 ## Installation
 
-### Using uv (recommended)
+### Using pip (recommended for most users)
+
+```bash
+pip install git+https://github.com/yuanz271/sarsa.git@v0.2.0
+```
+
+### Using uv (for development)
 
 ```bash
 uv sync                        # Runtime deps only
@@ -12,24 +18,11 @@ uv sync --extra examples       # + JupyterLab for notebook
 uv sync --group dev            # + pytest for testing
 ```
 
-### Using pip
-
-Install dependencies into a Python (>=3.11) environment with an editable install:
+### Editable install from source
 
 ```bash
-pip install -e .
-```
-
-Install with examples:
-
-```bash
-pip install -e .[examples]
-```
-
-Install the latest code directly from GitHub:
-
-```bash
-pip install git+https://github.com/yuanz271/sarsa.git
+pip install -e .               # Runtime deps only
+pip install -e .[examples]     # + JupyterLab for notebook
 ```
 
 ## Example

@@ -219,7 +219,10 @@ def _validate_quintuples(quintuples: Sequence[Quintuple], q0: NDArray) -> None:
             quintuple.s2.dtype, np.integer
         ):
             raise ValueError("state vectors must use integer dtype")
-        if quintuple.s1.shape != sample.s1.shape or quintuple.s2.shape != sample.s2.shape:
+        if (
+            quintuple.s1.shape != sample.s1.shape
+            or quintuple.s2.shape != sample.s2.shape
+        ):
             raise ValueError("state vectors must be consistent in shape")
         if np.any(quintuple.s1 < 0) or np.any(quintuple.s2 < 0):
             raise ValueError("state indices must be non-negative")

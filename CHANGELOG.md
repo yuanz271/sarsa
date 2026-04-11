@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-11
+
+### Added
+- Added vanilla SARSA mode: `run`/`fit` use `Quintuple.r2` directly when no `transition_reward_func` is provided, removing boilerplate for standard reward setups.
+- Added validation that extra trainable parameters require a reward callback.
+
 ### Changed
-- Refactored reward callback to transition-based signature (`transition_reward_func` now receives `(params, s1, a1, s2)` and returns `(s2, reward)`).
-- Updated `AGENTS.md` with accurate paths and code map.
+- Refactored reward callback to transition-based signature (`transition_reward_func` now receives `(params, s1, a1, s2)` and returns `(s2, reward)`) — **breaking change**.
 - Added validation for quintuples and Q-table shapes in `run`/`fit`, raising clearer errors for invalid indices.
 
 ### Fixed
@@ -26,5 +31,6 @@ All notable changes to this project will be documented in this file.
 - Kept experiment helpers next to the walkthrough so the `sarsa` package remains task-agnostic.
 - Computed stepwise rewards during `run` so `update` can consume them directly, keeping reward-related parameters consistent across trajectories.
 
-[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yuanz271/sarsa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yuanz271/sarsa/releases/tag/v0.1.0
