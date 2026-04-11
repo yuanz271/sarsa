@@ -10,12 +10,14 @@ Mirrors the workflow in examples/sarsa.ipynb to verify:
 """
 
 from enum import IntEnum
+from importlib import metadata
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
+import sarsa as sarsa_package
 from sarsa import sarsa
 
 # ---------------------------------------------------------------------------
@@ -321,6 +323,11 @@ def initial_params(rng):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+
+class TestPackageMetadata:
+    def test_package_version_matches_installed_metadata(self):
+        assert sarsa_package.__version__ == metadata.version("sarsa")
 
 
 class TestParameterPacking:
