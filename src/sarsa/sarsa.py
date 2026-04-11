@@ -6,17 +6,27 @@ SARSA
 This implementation is designed to be independent from the interpretation of state and action.
 It only requires the state and action to be integer NumPy arrays.
 
-The parameter vector is structured as follows:
+The flat parameter vector is the concatenation of two blocks:
 
-- ``params[0]`` -- **alpha** (learning rate)
-- ``params[1]`` -- **beta** (inverse temperature for the softmax policy)
-- ``params[2]`` -- **gamma** (discount / decay factor)
-- ``params[3:]`` -- user-defined parameters (e.g. hidden reward values)
+- ``sarsa_params`` -- parameters interpreted by the vanilla SARSA kernel
+- ``user_params`` -- user-defined extension parameters consumed by callbacks
 
-See :class:`ParamIndex` for the canonical index constants.
+The canonical SARSA parameter order is:
+
+- ``sarsa_params[ParamIndex.alpha]`` -- **alpha** (learning rate)
+- ``sarsa_params[ParamIndex.beta]`` -- **beta** (inverse temperature for the softmax policy)
+- ``sarsa_params[ParamIndex.gamma]`` -- **gamma** (discount / decay factor)
+
+This split isolates user-defined extension state from the vanilla kernel; it
+does not change the canonical ``alpha``, ``beta``, ``gamma`` semantics of SARSA
+itself.
+
+Use :func:`concat_params` and :func:`split_params` to construct and unpack the
+flat optimizer vector.
 """
 
 import logging
+import warnings
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from enum import IntEnum
@@ -29,11 +39,12 @@ from scipy.special import log_softmax
 logger = logging.getLogger(__name__)
 
 EPS = 1e-8  # Minimum positive value
-PARAM_BOUNDS = [
+SARSA_PARAM_BOUNDS = [
     (EPS, None),
     (EPS, None),
     (EPS, 1 - EPS),
-]  # Bounds for SARSA parameters
+]  # Bounds for vanilla SARSA parameters
+PARAM_BOUNDS = SARSA_PARAM_BOUNDS  # Backward-compatible alias
 
 
 class ParamIndex(IntEnum):
@@ -65,13 +76,83 @@ class Quintuple:
     a2: int
 
 
-def action_logprob(params: NDArray, v: NDArray) -> NDArray:
+def concat_params(
+    sarsa_params: Sequence[float] | NDArray,
+    user_params: Sequence[float] | NDArray = (),
+) -> NDArray:
+    """Concatenate SARSA-owned and user-defined parameter blocks.
+
+    Parameters
+    ----------
+    sarsa_params : Sequence[float] or NDArray
+        Flat block of parameters consumed by the vanilla SARSA kernel.
+    user_params : Sequence[float] or NDArray, optional
+        Flat block of user-defined extension parameters appended after
+        ``sarsa_params`` in the optimizer vector.
+
+    Returns
+    -------
+    NDArray
+        Concatenated flat parameter vector.
+
+    Raises
+    ------
+    ValueError
+        If either block is not one-dimensional, or if ``sarsa_params`` does not
+        match the canonical SARSA parameter count.
+    """
+    sarsa_params = np.asarray(sarsa_params, dtype=float)
+    user_params = np.asarray(user_params, dtype=float)
+    if sarsa_params.ndim != 1 or user_params.ndim != 1:
+        raise ValueError("parameter blocks must be one-dimensional")
+    if len(sarsa_params) != len(SARSA_PARAM_BOUNDS):
+        raise ValueError(
+            "sarsa_params must match canonical SARSA parameter count; "
+            f"got {len(sarsa_params)} and expected {len(SARSA_PARAM_BOUNDS)}"
+        )
+    return np.concatenate((sarsa_params, user_params))
+
+
+def split_params(params: Sequence[float] | NDArray) -> tuple[NDArray, NDArray]:
+    """Split a flat optimizer vector into SARSA-owned and user-defined blocks.
+
+    Parameters
+    ----------
+    params : Sequence[float] or NDArray
+        Flat parameter vector containing the SARSA block followed by any
+        user-defined extension parameters.
+
+    Returns
+    -------
+    tuple[NDArray, NDArray]
+        ``(sarsa_params, user_params)`` as one-dimensional arrays.
+
+    Raises
+    ------
+    ValueError
+        If ``params`` is not one-dimensional or shorter than the canonical SARSA
+        parameter count.
+    """
+    params = np.asarray(params, dtype=float)
+    if params.ndim != 1:
+        raise ValueError("params must be one-dimensional")
+    sarsa_param_count = len(SARSA_PARAM_BOUNDS)
+    if len(params) < sarsa_param_count:
+        raise ValueError(
+            "params must include the full SARSA parameter block; "
+            f"got {len(params)} and expected at least {sarsa_param_count}"
+        )
+    return params[:sarsa_param_count].copy(), params[sarsa_param_count:].copy()
+
+
+def action_logprob(sarsa_params: NDArray, v: NDArray) -> NDArray:
     """Compute softmax log-probabilities for each action.
 
     Parameters
     ----------
-    params : NDArray
-        Parameter vector with the inverse temperature stored at ``ParamIndex.beta``.
+    sarsa_params : NDArray
+        SARSA-owned parameter block with the inverse temperature stored at
+        ``ParamIndex.beta``.
     v : NDArray
         Action-value estimates prior to scaling.
 
@@ -80,7 +161,7 @@ def action_logprob(params: NDArray, v: NDArray) -> NDArray:
     NDArray
         Log-probabilities over the action set after softmaxing ``v`` by ``beta``.
     """
-    beta = params[ParamIndex.beta]
+    beta = sarsa_params[ParamIndex.beta]
     return log_softmax(v * beta)
 
 
@@ -149,13 +230,13 @@ def merge(params: NDArray, static: Sequence[float | None]) -> NDArray:
     )
 
 
-def update(params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, float]:
+def update(sarsa_params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, float]:
     """Apply the SARSA update for a single transition.
 
     Parameters
     ----------
-    params : NDArray
-        Parameter vector containing the learning rate and discount factor.
+    sarsa_params : NDArray
+        SARSA-owned parameter block containing the learning rate and discount factor.
     quintuple : Quintuple
         Transition describing state-action pairs and the next state.
     q : NDArray
@@ -169,8 +250,8 @@ def update(params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, 
         Temporal-difference error produced by the update.
     """
     # consequent reward transitioning from s1 to s2
-    alpha = params[ParamIndex.alpha]
-    gamma = params[ParamIndex.gamma]
+    alpha = sarsa_params[ParamIndex.alpha]
+    gamma = sarsa_params[ParamIndex.gamma]
     q_new = q.copy()
     s1 = quintuple.s1
     a1 = quintuple.a1
@@ -243,16 +324,18 @@ def run(
     Parameters
     ----------
     params : NDArray
-        Parameter vector passed to the learning rule.
+        Flat parameter vector passed to the learning rule.
     quintuples : Sequence[Quintuple]
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
         Initial Q-function prior to any updates.
     transition_reward_func : Callable or None, optional
-        Optional callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]``.
+        Optional callback with signature
+        ``(user_params, s1, a1, s2) -> tuple[NDArray, float]``.
         When omitted, SARSA uses each quintuple's observed ``r2`` directly without
         modifying the input data. When provided, the callback may recompute the reward
-        (and must return the recorded next-state ``s2``).
+        from the user-defined parameter block (and must return the recorded next-state
+        ``s2``).
 
     Returns
     -------
@@ -269,10 +352,12 @@ def run(
         If ``transition_reward_func`` returns a next-state that differs from
         the quintuple's recorded ``s2``.
     ValueError
-        If quintuples are empty, indices are incompatible with ``q0``, or vanilla mode
-        is asked to consume non-finite observed rewards.
+        If quintuples are empty, indices are incompatible with ``q0``, vanilla mode
+        is asked to consume non-finite observed rewards, or ``params`` cannot be split
+        into SARSA and user-defined blocks.
     """
     _validate_quintuples(quintuples, q0)
+    sarsa_params, user_params = split_params(params)
     T = len(quintuples)
     qs = np.zeros((T + 1,) + q0.shape)
     error = np.zeros(T)
@@ -280,25 +365,26 @@ def run(
     logprob = np.zeros((T, q0.shape[-1]))
     for t in range(T):
         quintuple = quintuples[t]
-        logprob[t] = action_logprob(params, q[*quintuple.s1])
+        logprob[t] = action_logprob(sarsa_params, q[*quintuple.s1])
         if transition_reward_func is None:
             if not np.isfinite(quintuple.r2):
                 raise ValueError(
                     "vanilla SARSA requires finite observed rewards in quintuple.r2"
                 )
-            qs[t + 1], error[t] = update(params, quintuple, q)
+            qs[t + 1], error[t] = update(sarsa_params, quintuple, q)
         else:
             s2, r2 = transition_reward_func(
-                params,
+                user_params,
                 quintuple.s1,
                 quintuple.a1,
                 quintuple.s2,
-            )  # calculate stepwise net reward on the fly for trainable reward-related parameters
+            )  # calculate stepwise net reward on the fly for user-defined extension parameters
             assert np.all(quintuple.s2 == s2)
-            # Reward depends on params; recompute each run while avoiding in-place mutation
-            # so callers can safely reuse the original quintuples.
+            # Reward depends on user-defined parameters; recompute each run while
+            # avoiding in-place mutation so callers can safely reuse the original
+            # quintuples.
             quintuple_with_reward = replace(quintuple, r2=r2)
-            qs[t + 1], error[t] = update(params, quintuple_with_reward, q)
+            qs[t + 1], error[t] = update(sarsa_params, quintuple_with_reward, q)
         q = qs[t + 1]
     return qs, logprob, error
 
@@ -315,7 +401,7 @@ def run_and_loss(
     Parameters
     ----------
     params : NDArray
-        Trainable parameter subset proposed by the optimiser.
+        Flat trainable parameter vector proposed by the optimiser.
     static : Sequence[float | None]
         Optional fixed parameter values to enforce during optimisation.
     quintuples : Sequence[Quintuple]
@@ -323,8 +409,9 @@ def run_and_loss(
     q0 : NDArray
         Initial Q-function prior to any updates.
     transition_reward_func : Callable or None, optional
-        Optional reward recomputation callback. When omitted, the loss is computed using
-        observed rewards already stored in ``quintuples``.
+        Optional reward recomputation callback operating on ``user_params``.
+        When omitted, the loss is computed using observed rewards already stored
+        in ``quintuples``.
 
     Returns
     -------
@@ -347,7 +434,9 @@ def fit(
     p0: NDArray,
     static_params: list | None = None,
     transition_reward_func: Callable | None = None,
-    custom_param_bounds: Sequence[tuple[float | None, float | None]] = (),
+    user_param_bounds: Sequence[tuple[float | None, float | None]] = (),
+    *,
+    custom_param_bounds: Sequence[tuple[float | None, float | None]] | None = None,
 ) -> tuple[NDArray, float, NDArray, NDArray]:
     """Optimise SARSA parameters against observed quintuples.
 
@@ -362,13 +451,17 @@ def fit(
     static_params : list[float | None] or None, optional
         Optional fixed parameter values matching the full parameter vector length.
     transition_reward_func : Callable or None, optional
-        Optional callback with signature ``(params, s1, a1, s2) -> tuple[NDArray, float]``.
-        When omitted, SARSA fits vanilla 3-parameter dynamics using observed rewards stored
-        in ``quintuples``. When provided, the callback may recompute rewards from the full
-        parameter vector.
-    custom_param_bounds : Sequence[tuple[float | None, float | None]], optional
-        Bounds applied to custom parameters appended after ``(alpha, beta, gamma)``.
-        Leave empty for vanilla SARSA.
+        Optional callback with signature
+        ``(user_params, s1, a1, s2) -> tuple[NDArray, float]``.
+        When omitted, SARSA fits vanilla dynamics using observed rewards stored
+        in ``quintuples``. When provided, the callback may recompute rewards from
+        the user-defined parameter block.
+    user_param_bounds : Sequence[tuple[float | None, float | None]], optional
+        Bounds applied to user-defined parameters appended after the SARSA-owned
+        parameter block. Leave empty for vanilla SARSA.
+    custom_param_bounds : Sequence[tuple[float | None, float | None]] or None, optional
+        Deprecated alias for ``user_param_bounds``. Kept temporarily for
+        compatibility with the pre-refactor API.
 
     Returns
     -------
@@ -388,7 +481,7 @@ def fit(
         inconsistent next-state, or if logprob/action lengths mismatch.
     ValueError
         If quintuples are empty, indices are incompatible with ``q0``, parameter lengths
-        are inconsistent, or extra trainable parameters are requested without a reward
+        are inconsistent, or user-defined parameters are requested without a reward
         callback.
 
     Notes
@@ -397,13 +490,26 @@ def fit(
     log output (INFO level) for the optimizer success flag and message.
     """
     p0 = np.asarray(p0, dtype=float)
+    if custom_param_bounds is not None:
+        if len(user_param_bounds) != 0:
+            raise ValueError(
+                "Specify only one of user_param_bounds or custom_param_bounds"
+            )
+        warnings.warn(
+            "`custom_param_bounds` is deprecated; use `user_param_bounds` instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        user_param_bounds = custom_param_bounds
+    user_param_bounds = tuple(user_param_bounds)
+
     if static_params is None:
         static_params = [None] * len(p0)
 
-    expected_param_count = len(PARAM_BOUNDS) + len(custom_param_bounds)
+    expected_param_count = len(SARSA_PARAM_BOUNDS) + len(user_param_bounds)
     if len(p0) != expected_param_count:
         raise ValueError(
-            "p0 length must match canonical plus custom parameters; "
+            "p0 length must match SARSA plus user-defined parameters; "
             f"got {len(p0)} and expected {expected_param_count}"
         )
     if len(static_params) != len(p0):
@@ -411,13 +517,11 @@ def fit(
             "static_params must match p0 length; "
             f"got {len(static_params)} and {len(p0)}"
         )
-    if transition_reward_func is None and len(p0) != len(PARAM_BOUNDS):
-        raise ValueError(
-            "extra trainable parameters require transition_reward_func"
-        )
+    if transition_reward_func is None and len(p0) != len(SARSA_PARAM_BOUNDS):
+        raise ValueError("user-defined parameters require transition_reward_func")
 
     _validate_quintuples(quintuples, q0)
-    bounds = PARAM_BOUNDS + list(custom_param_bounds)
+    bounds = SARSA_PARAM_BOUNDS + list(user_param_bounds)
 
     res = optimize.minimize(
         run_and_loss,
@@ -426,8 +530,8 @@ def fit(
         bounds=bounds,
     )
 
-    loss = res.fun  # type: ignore
-    params = res.x  # type: ignore
+    loss = res.fun
+    params = res.x
     logger.info("Optimizer finished: success=%s, message=%s", res.success, res.message)
     params = merge(params, static_params)
 
