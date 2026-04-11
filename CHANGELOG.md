@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.0] - 2026-04-11
 
+### Added
+- Added vanilla SARSA mode: `run`/`fit` use `Quintuple.r2` directly when no `transition_reward_func` is provided, removing boilerplate for standard reward setups.
+- Added validation that extra trainable parameters require a reward callback.
+
 ### Changed
 - Refactored reward callback to transition-based signature (`transition_reward_func` now receives `(params, s1, a1, s2)` and returns `(s2, reward)`) — **breaking change**.
 - Added validation for quintuples and Q-table shapes in `run`/`fit`, raising clearer errors for invalid indices.
