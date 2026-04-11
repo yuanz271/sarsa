@@ -10,21 +10,6 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 pip install git+https://github.com/yuanz271/sarsa.git@v0.2.0
 ```
 
-### Using uv (for development)
-
-```bash
-uv sync                        # Runtime deps only
-uv sync --extra examples       # + JupyterLab for notebook
-uv sync --group dev            # + pytest for testing
-```
-
-### Editable install from source
-
-```bash
-pip install -e .               # Runtime deps only
-pip install -e .[examples]     # + JupyterLab for notebook
-```
-
 ## Example
 
 Fit to the session `examples/M1.csv`:
@@ -66,18 +51,9 @@ If rewards depend on additional latent/task-specific parameters, provide a
 
 - `run()` now returns temporal-difference errors with length `T`, aligned with the number of transitions.
 
-## Testing
+## Contributing
 
-```bash
-uv run pytest tests/ -v
-```
-
-## Linting
-
-```bash
-uvx ruff check
-uvx ruff format
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
