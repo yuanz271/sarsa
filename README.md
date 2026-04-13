@@ -12,7 +12,7 @@ pip install git+https://github.com/yuanz271/sarsa.git@v0.4.0
 
 ## Example
 
-Fit to the session `examples/M1.csv`:
+Run the bundled walkthrough notebook for an end-to-end usage example:
 
 ```bash
 jupyter lab examples/sarsa.ipynb
@@ -35,9 +35,7 @@ params, loss, q_trajectory, action_prob = sarsa.fit(
 
 By default, `fit()` treats `beta` as a fixed policy hyperparameter and optimizes
 `alpha` and `gamma`. The default is `beta = 5.0`, chosen as a conservative
-large-yet-stable setting on the bundled `examples/M1.csv` session: fits stayed
-well behaved around `beta ≈ 5–8`, while `beta >= 12` showed seed-dependent
-instability and occasional numerical warnings. Set `fit_beta=True` to estimate
+large-yet-stable setting. Set `fit_beta=True` to estimate
 `beta` explicitly, and consider a sensitivity sweep on new tasks or reward scales.
 
 Canonical parameter domains now follow edge-safe box constraints:
@@ -57,17 +55,19 @@ recompute them on the fly.
 
 If rewards depend on additional latent or task-specific parameters, provide a
 `transition_reward_func(user_params, s1, a1, s2)` and matching
-`user_param_bounds`. In this mode, the optimizer still fits one flat parameter
-vector, but the callback receives only the user-defined parameter block rather
-than the full SARSA vector. By default, `fit()` keeps `beta` fixed as a policy
-hyperparameter; set `fit_beta=True` if you want `beta` to be optimized.
+`user_param_bounds`. This callback is the extension hook for returning the next
+state and transition reward on the fly from user-defined parameters rather than
+reading the reward from `Quintuple.r2`. It should return `(next_state, reward)`,
+where `next_state` matches the recorded next state and `reward` is the scalar
+transition reward for that step.
+
+In this mode, the optimizer still fits one flat parameter vector, but the
+callback receives only the user-defined parameter block rather than the full
+SARSA vector. By default, `fit()` keeps `beta` fixed as a policy hyperparameter;
+set `fit_beta=True` if you want `beta` to be optimized.
 
 `custom_param_bounds` is still accepted as a deprecated compatibility alias in
 `fit()`.
-
-## Data Assumptions
-
-- The example preprocessing expects a `TIME (S)` column in behavioral data for resampling.
 
 ## Output Notes
 
