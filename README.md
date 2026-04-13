@@ -7,7 +7,7 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 ### Using pip (recommended for most users)
 
 ```bash
-pip install git+https://github.com/yuanz271/sarsa.git@v0.3.0
+pip install git+https://github.com/yuanz271/sarsa.git@v0.4.0
 ```
 
 ## Example
