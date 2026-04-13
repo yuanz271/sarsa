@@ -1,7 +1,7 @@
 # Parameter handling refactor: `sarsa_params` + `user_params`
 
-**Status:** draft  
-**Branch:** `refactor-params`
+**Status:** implemented and released in `v0.3.0`  
+**Branch:** `main` (merged from `refactor-params`)
 
 ## Summary
 
