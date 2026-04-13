@@ -40,6 +40,16 @@ well behaved around `beta ≈ 5–8`, while `beta >= 12` showed seed-dependent
 instability and occasional numerical warnings. Set `fit_beta=True` to estimate
 `beta` explicitly, and consider a sensitivity sweep on new tasks or reward scales.
 
+Canonical parameter domains now follow edge-safe box constraints:
+- `alpha ∈ [0, 1]`
+- `beta ∈ [0, ∞)`
+- `gamma ∈ [0, 1)`
+
+This means `alpha = 0`, `alpha = 1`, `beta = 0`, and `gamma = 0` are all valid
+edge cases, while exact `gamma = 1` remains excluded through the optimizer bound
+`1 - EPS`. `fit()` emits a warning when trainable canonical SARSA parameters land
+on active bounds, since that often signals weak identifiability or conditioning.
+
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.
 

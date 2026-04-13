@@ -42,15 +42,17 @@ from scipy.special import log_softmax
 
 logger = logging.getLogger(__name__)
 
-EPS = 1e-8  # Minimum positive value
+EPS = 1e-8  # Small positive value reserved for strict gamma < 1 handling
+BOUNDARY_WARNING_ATOL = 1e-8
+BOUNDARY_WARNING_RTOL = 1e-5
 # Conservative near-greedy default chosen from the bundled example sweep;
 # larger beta values (around 12 and above) destabilized fits.
 DEFAULT_POLICY_BETA = 5.0
 SARSA_PARAM_BOUNDS = [
-    (EPS, None),
-    (EPS, None),
-    (EPS, 1 - EPS),
-]  # Bounds for vanilla SARSA parameters
+    (0.0, 1.0),
+    (0.0, None),
+    (0.0, 1 - EPS),
+]  # alpha in [0, 1], beta in [0, inf), gamma in [0, 1)
 PARAM_BOUNDS = SARSA_PARAM_BOUNDS  # Backward-compatible alias
 
 
@@ -314,10 +316,12 @@ def resolve_static_params(
             "static_params must match p0 length; "
             f"got {len(resolved)} and {param_count}"
         )
-    if not np.isfinite(policy_beta) or policy_beta <= EPS:
+    if not np.isfinite(policy_beta) or policy_beta < 0.0:
         raise ValueError(
-            f"policy_beta must be finite and greater than {EPS}; got {policy_beta}"
+            f"policy_beta must be finite and non-negative; got {policy_beta}"
         )
+
+    # ``beta = 0`` is valid and yields a uniform softmax policy.
 
     beta_index = ParamIndex.beta
     if resolved[beta_index] is not None:
@@ -330,6 +334,61 @@ def resolve_static_params(
     elif not fit_beta:
         resolved[beta_index] = float(policy_beta)
     return resolved
+
+
+def warn_if_sarsa_params_hit_bounds(
+    sarsa_params: Sequence[float] | NDArray,
+    static_sarsa_params: Sequence[float | None],
+) -> None:
+    """Warn when optimized canonical SARSA parameters land on active bounds.
+
+    This warning is intended as a light identifiability / conditioning signal for
+    fitted canonical SARSA parameters only. Explicitly fixed parameters are ignored.
+    """
+    sarsa_params = np.asarray(sarsa_params, dtype=float)
+    if sarsa_params.ndim != 1:
+        raise ValueError("sarsa_params must be one-dimensional")
+    if len(sarsa_params) != len(SARSA_PARAM_BOUNDS):
+        raise ValueError(
+            "sarsa_params must match canonical SARSA parameter count; "
+            f"got {len(sarsa_params)} and expected {len(SARSA_PARAM_BOUNDS)}"
+        )
+    if len(static_sarsa_params) != len(SARSA_PARAM_BOUNDS):
+        raise ValueError(
+            "static_sarsa_params must match canonical SARSA parameter count; "
+            f"got {len(static_sarsa_params)} and expected {len(SARSA_PARAM_BOUNDS)}"
+        )
+
+    hits = []
+    for i, ((lower, upper), fixed_value) in enumerate(
+        zip(SARSA_PARAM_BOUNDS, static_sarsa_params)
+    ):
+        if fixed_value is not None:
+            continue
+        value = float(sarsa_params[i])
+        name = ParamIndex(i).name
+        if lower is not None and np.isclose(
+            value,
+            lower,
+            atol=BOUNDARY_WARNING_ATOL,
+            rtol=BOUNDARY_WARNING_RTOL,
+        ):
+            hits.append(f"{name}≈lower ({value:.6g})")
+        if upper is not None and np.isclose(
+            value,
+            upper,
+            atol=BOUNDARY_WARNING_ATOL,
+            rtol=BOUNDARY_WARNING_RTOL,
+        ):
+            hits.append(f"{name}≈upper ({value:.6g})")
+
+    if hits:
+        warnings.warn(
+            "Optimized SARSA parameters landed on bounds; interpretation may be "
+            "weakly identified: " + ", ".join(hits),
+            UserWarning,
+            stacklevel=2,
+        )
 
 
 def update(sarsa_params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, float]:
@@ -579,7 +638,8 @@ def fit(
         ``static_params``.
     policy_beta : float, optional
         Fixed beta value used when ``fit_beta=False`` and ``static_params`` does
-        not already provide a beta value.
+        not already provide a beta value. ``beta = 0`` is valid and yields a
+        uniform policy.
 
     Returns
     -------
@@ -605,7 +665,10 @@ def fit(
     Notes
     -----
     The underlying ``scipy.optimize.minimize`` may fail to converge.  Check the
-    log output (INFO level) for the optimizer success flag and message.
+    log output (INFO level) for the optimizer success flag and message.  A
+    ``UserWarning`` is emitted when trainable canonical SARSA parameters land on
+    active bounds, since this often indicates weak identifiability or conditioning
+    issues.
     """
     p0 = np.asarray(p0, dtype=float)
     if custom_param_bounds is not None:
@@ -661,6 +724,11 @@ def fit(
         logger.info(
             "Optimizer finished: success=%s, message=%s", res.success, res.message
         )
+
+    warn_if_sarsa_params_hit_bounds(
+        params[: len(SARSA_PARAM_BOUNDS)],
+        static_params[: len(SARSA_PARAM_BOUNDS)],
+    )
 
     q_trajectory, logprob_trajectory, error = run(
         params, quintuples, q0, transition_reward_func

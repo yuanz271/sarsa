@@ -21,6 +21,10 @@ import pytest
 import sarsa as sarsa_package
 from sarsa import sarsa
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Optimized SARSA parameters landed on bounds.*"
+)
+
 # ---------------------------------------------------------------------------
 # Experiment helpers (copied from examples/experiment.py for test isolation)
 #
@@ -343,6 +347,50 @@ class TestParameterPacking:
         assert np.allclose(split_user_params, user_params)
 
 
+class TestSarsaParameterBounds:
+    def test_canonical_bounds_match_edge_safe_domains(self):
+        assert sarsa.SARSA_PARAM_BOUNDS == [
+            (0.0, 1.0),
+            (0.0, None),
+            (0.0, 1.0 - sarsa.EPS),
+        ]
+
+    def test_update_allows_alpha_zero_without_learning(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.zeros((1, 2))
+
+        q_new, error = sarsa.update(np.array([0.0, 1.0, 0.5]), quintuple, q0)
+
+        assert np.allclose(q_new, q0)
+        assert error == pytest.approx(2.0)
+
+    def test_update_allows_alpha_one_full_td_step(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.array([[1.0, 0.0]])
+
+        q_new, error = sarsa.update(np.array([1.0, 1.0, 0.5]), quintuple, q0)
+
+        assert error == pytest.approx(1.5)
+        assert q_new[0, 0] == pytest.approx(2.5)
+
+    def test_update_allows_gamma_zero_for_immediate_reward_only(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.array([[1.0, 0.0]])
+
+        q_new, error = sarsa.update(np.array([1.0, 1.0, 0.0]), quintuple, q0)
+
+        assert error == pytest.approx(1.0)
+        assert q_new[0, 0] == pytest.approx(2.0)
+
+    def test_action_logprob_is_uniform_when_beta_is_zero(self):
+        logprob = sarsa.action_logprob(
+            np.array([0.5, 0.0, 0.5]),
+            np.array([2.0, -1.0, 7.0]),
+        )
+
+        assert np.allclose(sarsa.to_prob(logprob), np.full(3, 1 / 3))
+
+
 class TestSarsaFit:
     def test_fit_completes(self, quintuples, initial_q, initial_params):
         params, loss, q_trajectory, action_prob = sarsa.fit(
@@ -584,6 +632,55 @@ class TestSarsaFitOptimization:
         assert np.isfinite(loss)
         assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
         assert action_prob.shape == (len(quintuples), 2)
+
+    def test_fit_accepts_zero_policy_beta(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["bounds"] = list(bounds)
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, loss, _, _ = sarsa.fit(quintuples, q0, p0, policy_beta=0.0)
+
+        assert captured["bounds"] == [
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.alpha],
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.gamma],
+        ]
+        assert loss == pytest.approx(0.0)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(0.0)
+
+    def test_fit_rejects_negative_policy_beta(self):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        with pytest.raises(ValueError, match="non-negative"):
+            sarsa.fit(quintuples, q0, p0, policy_beta=-0.1)
+
+    def test_fit_warns_when_trainable_sarsa_param_hits_bound(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            return SimpleNamespace(
+                x=np.array([x0[0], 1.0 - sarsa.EPS]),
+                fun=0.0,
+                success=True,
+                message="ok",
+            )
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        with pytest.warns(UserWarning, match=r"landed on bounds.*gamma≈upper"):
+            params, _, _, _ = sarsa.fit(quintuples, q0, p0)
+
+        assert params[sarsa.ParamIndex.gamma] == pytest.approx(1.0 - sarsa.EPS)
 
 
 class TestSarsaFitCompatibility:
