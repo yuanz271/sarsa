@@ -1,6 +1,6 @@
 # Beta as a fixed policy hyperparameter by default
 
-**Status:** implemented on `beta-hyperparam` (sensitivity sweep pending)  
+**Status:** implemented on `beta-hyperparam`; default `DEFAULT_POLICY_BETA = 5.0` justified by bundled-example sensitivity sweep  
 **Branch:** `beta-hyperparam`
 
 ## Summary
@@ -197,8 +197,10 @@ Introduce a named constant:
 DEFAULT_POLICY_BETA = 5.0
 ```
 
-This branch implements `5.0` as a provisional default. A small sensitivity sweep
-is still recommended before treating that value as scientifically settled.
+This branch implements `5.0` as the default. It is justified empirically by a
+small sensitivity sweep on the bundled `examples/M1.csv` session, but users
+should still check sensitivity on new tasks or reward scales before treating it
+as scientifically settled.
 
 Requirements for the chosen default:
 
@@ -207,16 +209,41 @@ Requirements for the chosen default:
 - approximates greedy choice
 - does not saturate the softmax so severely that optimization becomes numerically brittle
 
-The concrete numeric default should still be stress-tested with a small sensitivity
-sweep, for example over a grid such as:
+### Empirical justification of `5.0`
 
-- low
-- medium
-- moderately high
-- high
+We ran fixed-`beta` fits on the bundled `examples/M1.csv` session across a grid
+of values
 
-The exact values are an implementation detail and should not be scattered inline
-throughout the code.
+- coarse sweep: `beta ∈ {1, 2, 5, 10, 20, 40}`
+- finer sweep: `beta ∈ {3, 4, 6, 8, 12, 15}`
+- repeated across `5` random initializations per value
+
+using the current reduced-subspace `fit()` implementation with `beta` fixed and
+`alpha`, `gamma`, and `user_params` free.
+
+Observed pattern:
+
+- `beta = 5` gave stable fits across seeds
+- `beta ≈ 5–8` remained numerically well behaved, though user-parameter spread
+  increased with larger `beta`
+- `beta = 10` still converged, but parameter variability widened further
+- `beta >= 12` showed seed-dependent basin switching, including pathological
+  solutions with very large `alpha` and very small `gamma`
+- `beta >= 20` produced overflow / invalid-value warnings and clearly unstable fits
+
+Decision:
+
+- choose `DEFAULT_POLICY_BETA = 5.0`
+- treat it as a conservative point inside the stable regime rather than the
+  largest still-convergent value
+- recommend optional sensitivity checks in roughly the `5–8` range for new tasks
+
+Caveat:
+
+- this sweep used a single bundled session and should be interpreted as a
+  conditioning check, not a universal scientific calibration
+- fixing `beta` does not resolve the deeper issue that `gamma` can remain weakly
+  identified in action-only fitting
 
 ---
 

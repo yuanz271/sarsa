@@ -43,7 +43,9 @@ from scipy.special import log_softmax
 logger = logging.getLogger(__name__)
 
 EPS = 1e-8  # Minimum positive value
-DEFAULT_POLICY_BETA = 5.0  # Large but finite beta for near-greedy default policy
+# Conservative near-greedy default chosen from the bundled example sweep;
+# larger beta values (around 12 and above) destabilized fits.
+DEFAULT_POLICY_BETA = 5.0
 SARSA_PARAM_BOUNDS = [
     (EPS, None),
     (EPS, None),

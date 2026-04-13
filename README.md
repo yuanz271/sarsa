@@ -29,12 +29,16 @@ SARSA parameter block directly:
 params, loss, q_trajectory, action_prob = sarsa.fit(
     quintuples,
     q0=q0,
-    p0=np.array([0.5, 1.0, 0.9]),
+    p0=np.array([0.5, sarsa.DEFAULT_POLICY_BETA, 0.9]),
 )
 ```
 
 By default, `fit()` treats `beta` as a fixed policy hyperparameter and optimizes
-`alpha` and `gamma`. Set `fit_beta=True` to estimate `beta` explicitly.
+`alpha` and `gamma`. The default is `beta = 5.0`, chosen as a conservative
+large-yet-stable setting on the bundled `examples/M1.csv` session: fits stayed
+well behaved around `beta ≈ 5–8`, while `beta >= 12` showed seed-dependent
+instability and occasional numerical warnings. Set `fit_beta=True` to estimate
+`beta` explicitly, and consider a sensitivity sweep on new tasks or reward scales.
 
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.
