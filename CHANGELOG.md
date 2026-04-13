@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- `fit()` now treats `beta` as a fixed policy hyperparameter by default and only optimizes it when `fit_beta=True` is requested.
+- Fixed parameters are now removed from the optimization subspace instead of being overwritten inside the objective, improving conditioning when parameters such as `beta` are held constant.
+- `fit()` now selects `L-BFGS-B` explicitly for bounded optimization.
+- Canonical SARSA bounds now use edge-safe box domains: `alpha ∈ [0, 1]`, `beta ∈ [0, ∞)`, and `gamma ∈ [0, 1)`.
+- `fit()` now warns when trainable canonical SARSA parameters land on active bounds, since this often indicates weak identifiability or conditioning.
+- Explicit fixed parameters supplied through `static_params` are now validated against their declared bounds.
+
 ## [0.3.0] - 2026-04-11
 
 ### Added

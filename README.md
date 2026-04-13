@@ -29,9 +29,26 @@ SARSA parameter block directly:
 params, loss, q_trajectory, action_prob = sarsa.fit(
     quintuples,
     q0=q0,
-    p0=np.array([0.5, 1.0, 0.9]),
+    p0=np.array([0.5, sarsa.DEFAULT_POLICY_BETA, 0.9]),
 )
 ```
+
+By default, `fit()` treats `beta` as a fixed policy hyperparameter and optimizes
+`alpha` and `gamma`. The default is `beta = 5.0`, chosen as a conservative
+large-yet-stable setting on the bundled `examples/M1.csv` session: fits stayed
+well behaved around `beta ≈ 5–8`, while `beta >= 12` showed seed-dependent
+instability and occasional numerical warnings. Set `fit_beta=True` to estimate
+`beta` explicitly, and consider a sensitivity sweep on new tasks or reward scales.
+
+Canonical parameter domains now follow edge-safe box constraints:
+- `alpha ∈ [0, 1]`
+- `beta ∈ [0, ∞)`
+- `gamma ∈ [0, 1)`
+
+This means `alpha = 0`, `alpha = 1`, `beta = 0`, and `gamma = 0` are all valid
+edge cases, while exact `gamma = 1` remains excluded through the optimizer bound
+`1 - EPS`. `fit()` emits a warning when trainable canonical SARSA parameters land
+on active bounds, since that often signals weak identifiability or conditioning.
 
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.
@@ -42,9 +59,8 @@ If rewards depend on additional latent or task-specific parameters, provide a
 `transition_reward_func(user_params, s1, a1, s2)` and matching
 `user_param_bounds`. In this mode, the optimizer still fits one flat parameter
 vector, but the callback receives only the user-defined parameter block rather
-than the full SARSA vector. This refactor isolates user-defined parameters from
-the extension hook; the vanilla SARSA kernel still canonically interprets
-`alpha`, `beta`, and `gamma`.
+than the full SARSA vector. By default, `fit()` keeps `beta` fixed as a policy
+hyperparameter; set `fit_beta=True` if you want `beta` to be optimized.
 
 `custom_param_bounds` is still accepted as a deprecated compatibility alias in
 `fit()`.
