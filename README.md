@@ -18,6 +18,31 @@ Run the bundled walkthrough notebook for an end-to-end usage example:
 jupyter lab examples/sarsa.ipynb
 ```
 
+## Model
+
+This library implements tabular on-policy SARSA with a softmax policy.
+
+Temporal-difference error:
+
+$$
+\delta_t = r_{t+1} + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t, a_t)
+$$
+
+SARSA update:
+
+$$
+Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha \, \delta_t
+$$
+
+Policy:
+
+$$
+\pi(a \mid s) = \frac{\exp\left(\beta Q(s, a)\right)}{\sum_{a'} \exp\left(\beta Q(s, a')\right)}
+$$
+
+where `alpha` is the learning rate, `beta` is the inverse temperature, and
+`gamma` is the discount factor.
+
 ## Usage Modes
 
 ### Vanilla SARSA
