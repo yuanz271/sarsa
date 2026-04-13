@@ -33,6 +33,9 @@ params, loss, q_trajectory, action_prob = sarsa.fit(
 )
 ```
 
+By default, `fit()` treats `beta` as a fixed policy hyperparameter and optimizes
+`alpha` and `gamma`. Set `fit_beta=True` to estimate `beta` explicitly.
+
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.
 
@@ -42,9 +45,8 @@ If rewards depend on additional latent or task-specific parameters, provide a
 `transition_reward_func(user_params, s1, a1, s2)` and matching
 `user_param_bounds`. In this mode, the optimizer still fits one flat parameter
 vector, but the callback receives only the user-defined parameter block rather
-than the full SARSA vector. This refactor isolates user-defined parameters from
-the extension hook; the vanilla SARSA kernel still canonically interprets
-`alpha`, `beta`, and `gamma`.
+than the full SARSA vector. By default, `fit()` keeps `beta` fixed as a policy
+hyperparameter; set `fit_beta=True` if you want `beta` to be optimized.
 
 `custom_param_bounds` is still accepted as a deprecated compatibility alias in
 `fit()`.

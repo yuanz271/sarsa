@@ -12,6 +12,7 @@ Mirrors the workflow in examples/sarsa.ipynb to verify:
 from enum import IntEnum
 from importlib import metadata
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -478,6 +479,7 @@ class TestSarsaFitVanilla:
         assert np.isfinite(loss)
         assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
         assert action_prob.shape == (len(quintuples), 2)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(sarsa.DEFAULT_POLICY_BETA)
 
     def test_fit_rejects_extra_params_without_reward_callback(self):
         quintuples = make_toy_quintuples(reward=1.0)
@@ -486,6 +488,102 @@ class TestSarsaFitVanilla:
 
         with pytest.raises(ValueError, match="user-defined parameters require"):
             sarsa.fit(quintuples, q0, p0, user_param_bounds=[(0.0, None)])
+
+
+class TestSarsaFitOptimization:
+    def test_fit_fixes_beta_by_default_and_uses_reduced_subspace(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.1, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            captured["bounds"] = list(bounds)
+            captured["method"] = method
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, loss, _, _ = sarsa.fit(quintuples, q0, p0)
+
+        assert captured["method"] == "L-BFGS-B"
+        assert captured["x0"].shape == (2,)
+        assert captured["bounds"] == [
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.alpha],
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.gamma],
+        ]
+        assert loss == pytest.approx(0.0)
+        assert params[sarsa.ParamIndex.alpha] == pytest.approx(p0[sarsa.ParamIndex.alpha])
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(sarsa.DEFAULT_POLICY_BETA)
+        assert params[sarsa.ParamIndex.gamma] == pytest.approx(p0[sarsa.ParamIndex.gamma])
+
+    def test_fit_can_opt_in_to_beta_optimization(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            captured["bounds"] = list(bounds)
+            captured["method"] = method
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, _, _, _ = sarsa.fit(quintuples, q0, p0, fit_beta=True)
+
+        assert captured["method"] == "L-BFGS-B"
+        assert captured["x0"].shape == (3,)
+        assert captured["bounds"] == list(sarsa.SARSA_PARAM_BOUNDS)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(p0[sarsa.ParamIndex.beta])
+
+    def test_explicit_static_beta_overrides_fit_beta(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        with pytest.warns(UserWarning, match="fit_beta=True ignored"):
+            params, _, _, _ = sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                static_params=[None, 2.5, None],
+                fit_beta=True,
+            )
+
+        assert captured["x0"].shape == (2,)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(2.5)
+
+    def test_fit_skips_optimizer_when_all_params_are_fixed(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fail_minimize(*args, **kwargs):
+            raise AssertionError("optimizer should not be called when all params are fixed")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fail_minimize)
+
+        params, loss, q_trajectory, action_prob = sarsa.fit(
+            quintuples,
+            q0,
+            p0,
+            static_params=[0.25, 2.5, 0.5],
+        )
+
+        assert np.allclose(params, np.array([0.25, 2.5, 0.5]))
+        assert np.isfinite(loss)
+        assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
+        assert action_prob.shape == (len(quintuples), 2)
 
 
 class TestSarsaFitCompatibility:

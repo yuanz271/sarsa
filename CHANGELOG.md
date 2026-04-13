@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- `fit()` now treats `beta` as a fixed policy hyperparameter by default and only optimizes it when `fit_beta=True` is requested.
+- Fixed parameters are now removed from the optimization subspace instead of being overwritten inside the objective, improving conditioning when parameters such as `beta` are held constant.
+- `fit()` now selects `L-BFGS-B` explicitly for bounded optimization.
+
 ## [0.3.0] - 2026-04-11
 
 ### Added

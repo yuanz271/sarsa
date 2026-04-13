@@ -21,6 +21,10 @@ This split isolates user-defined extension state from the vanilla kernel; it
 does not change the canonical ``alpha``, ``beta``, ``gamma`` semantics of SARSA
 itself.
 
+By default, :func:`fit` treats ``beta`` as a fixed policy hyperparameter and
+optimizes the remaining free coordinates only. Use ``fit_beta=True`` to opt in
+to fitting ``beta`` explicitly.
+
 Use :func:`concat_params` and :func:`split_params` to construct and unpack the
 flat optimizer vector.
 """
@@ -39,6 +43,7 @@ from scipy.special import log_softmax
 logger = logging.getLogger(__name__)
 
 EPS = 1e-8  # Minimum positive value
+DEFAULT_POLICY_BETA = 5.0  # Large but finite beta for near-greedy default policy
 SARSA_PARAM_BOUNDS = [
     (EPS, None),
     (EPS, None),
@@ -201,14 +206,15 @@ def cross_entropy(inputs: NDArray, targets: NDArray) -> np.floating:
 
 
 def merge(params: NDArray, static: Sequence[float | None]) -> NDArray:
-    """Combine trainable parameters with optional fixed values.
+    """Combine full-length parameters with optional fixed values.
 
     Parameters
     ----------
     params : NDArray
-        Candidate parameter values proposed by the optimiser.
+        Full parameter vector whose entries may be overwritten by ``static``.
     static : Sequence[float | None]
-        Fixed values for each parameter position; ``None`` keeps the trainable value.
+        Fixed values for each parameter position; ``None`` keeps the corresponding
+        value from ``params``.
 
     Returns
     -------
@@ -228,6 +234,100 @@ def merge(params: NDArray, static: Sequence[float | None]) -> NDArray:
     return np.array(
         [p if s is None else s for p, s in zip(params, static)], dtype=float
     )
+
+
+def select_trainable_params(
+    full_params: Sequence[float] | NDArray,
+    static: Sequence[float | None],
+) -> NDArray:
+    """Extract the trainable coordinates from a full parameter vector."""
+    full_params = np.asarray(full_params, dtype=float)
+    if full_params.ndim != 1:
+        raise ValueError("full_params must be one-dimensional")
+    if len(full_params) != len(static):
+        raise ValueError(
+            "full_params and static must have the same length; "
+            f"got {len(full_params)} and {len(static)}"
+        )
+    return np.array(
+        [p for p, s in zip(full_params, static) if s is None], dtype=float
+    )
+
+
+def materialize_params(
+    trainable_params: Sequence[float] | NDArray,
+    static: Sequence[float | None],
+) -> NDArray:
+    """Reconstruct the full parameter vector from trainable coordinates."""
+    trainable_params = np.asarray(trainable_params, dtype=float)
+    if trainable_params.ndim != 1:
+        raise ValueError("trainable_params must be one-dimensional")
+
+    full = np.empty(len(static), dtype=float)
+    j = 0
+    for i, s in enumerate(static):
+        if s is None:
+            if j >= len(trainable_params):
+                raise ValueError(
+                    "trainable_params length does not match free parameter slots"
+                )
+            full[i] = trainable_params[j]
+            j += 1
+        else:
+            full[i] = float(s)
+    if j != len(trainable_params):
+        raise ValueError(
+            "trainable_params length does not match free parameter slots"
+        )
+    return full
+
+
+def select_trainable_bounds(
+    full_bounds: Sequence[tuple[float | None, float | None]],
+    static: Sequence[float | None],
+) -> list[tuple[float | None, float | None]]:
+    """Extract bounds for trainable coordinates only."""
+    if len(full_bounds) != len(static):
+        raise ValueError(
+            "full_bounds and static must have the same length; "
+            f"got {len(full_bounds)} and {len(static)}"
+        )
+    return [bound for bound, s in zip(full_bounds, static) if s is None]
+
+
+def resolve_static_params(
+    static_params: Sequence[float | None] | None,
+    param_count: int,
+    *,
+    fit_beta: bool,
+    policy_beta: float,
+) -> list[float | None]:
+    """Resolve fixed parameters, including the default beta hyperparameter."""
+    if static_params is None:
+        resolved = [None] * param_count
+    else:
+        resolved = list(static_params)
+    if len(resolved) != param_count:
+        raise ValueError(
+            "static_params must match p0 length; "
+            f"got {len(resolved)} and {param_count}"
+        )
+    if not np.isfinite(policy_beta) or policy_beta <= EPS:
+        raise ValueError(
+            f"policy_beta must be finite and greater than {EPS}; got {policy_beta}"
+        )
+
+    beta_index = ParamIndex.beta
+    if resolved[beta_index] is not None:
+        if fit_beta:
+            warnings.warn(
+                "fit_beta=True ignored because static_params fixes beta.",
+                UserWarning,
+                stacklevel=2,
+            )
+    elif not fit_beta:
+        resolved[beta_index] = float(policy_beta)
+    return resolved
 
 
 def update(sarsa_params: NDArray, quintuple: Quintuple, q: NDArray) -> tuple[NDArray, float]:
@@ -391,19 +491,16 @@ def run(
 
 def run_and_loss(
     params: NDArray,
-    static: Sequence[float | None],
     quintuples: Sequence[Quintuple],
     q0: NDArray,
     transition_reward_func: Callable | None = None,
-) -> np.floating:
+) -> float:
     """Run SARSA and compute the cross-entropy loss.
 
     Parameters
     ----------
     params : NDArray
-        Flat trainable parameter vector proposed by the optimiser.
-    static : Sequence[float | None]
-        Optional fixed parameter values to enforce during optimisation.
+        Full flat parameter vector.
     quintuples : Sequence[Quintuple]
         Rollout transitions describing the trajectory to learn from.
     q0 : NDArray
@@ -418,14 +515,23 @@ def run_and_loss(
     float
         Mean cross-entropy loss between predicted and taken actions.
     """
-    params = merge(
-        params, static
-    )  # transform parameters to constrained and replace with fixed values
     actions = np.array([q.a1 for q in quintuples], dtype=np.int_)
-    q, logprob, _ = run(params, quintuples, q0, transition_reward_func)
+    _, logprob, _ = run(params, quintuples, q0, transition_reward_func)
     assert len(logprob) == len(actions), f"{len(logprob)}, {len(actions)}"
     ce = cross_entropy(logprob, actions)
-    return ce
+    return float(ce)
+
+
+def run_and_loss_trainable(
+    trainable_params: NDArray,
+    static_params: Sequence[float | None],
+    quintuples: Sequence[Quintuple],
+    q0: NDArray,
+    transition_reward_func: Callable | None = None,
+) -> float:
+    """Evaluate loss in the reduced trainable subspace only."""
+    params = materialize_params(trainable_params, static_params)
+    return run_and_loss(params, quintuples, q0, transition_reward_func)
 
 
 def fit(
@@ -437,6 +543,8 @@ def fit(
     user_param_bounds: Sequence[tuple[float | None, float | None]] = (),
     *,
     custom_param_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    fit_beta: bool = False,
+    policy_beta: float = DEFAULT_POLICY_BETA,
 ) -> tuple[NDArray, float, NDArray, NDArray]:
     """Optimise SARSA parameters against observed quintuples.
 
@@ -447,9 +555,10 @@ def fit(
     q0 : NDArray
         Initial Q-function prior to any updates.
     p0 : NDArray
-        Initial guess for the optimiser across learnable parameters.
+        Initial guess for the full flat parameter vector.
     static_params : list[float | None] or None, optional
         Optional fixed parameter values matching the full parameter vector length.
+        Explicit fixed values override the default beta hyperparameter handling.
     transition_reward_func : Callable or None, optional
         Optional callback with signature
         ``(user_params, s1, a1, s2) -> tuple[NDArray, float]``.
@@ -462,6 +571,13 @@ def fit(
     custom_param_bounds : Sequence[tuple[float | None, float | None]] or None, optional
         Deprecated alias for ``user_param_bounds``. Kept temporarily for
         compatibility with the pre-refactor API.
+    fit_beta : bool, optional
+        If ``False`` (default), treat beta as a fixed policy hyperparameter.
+        If ``True``, beta remains a trainable parameter unless explicitly fixed in
+        ``static_params``.
+    policy_beta : float, optional
+        Fixed beta value used when ``fit_beta=False`` and ``static_params`` does
+        not already provide a beta value.
 
     Returns
     -------
@@ -481,8 +597,8 @@ def fit(
         inconsistent next-state, or if logprob/action lengths mismatch.
     ValueError
         If quintuples are empty, indices are incompatible with ``q0``, parameter lengths
-        are inconsistent, or user-defined parameters are requested without a reward
-        callback.
+        are inconsistent, policy beta is invalid, or user-defined parameters are
+        requested without a reward callback.
 
     Notes
     -----
@@ -503,37 +619,46 @@ def fit(
         user_param_bounds = custom_param_bounds
     user_param_bounds = tuple(user_param_bounds)
 
-    if static_params is None:
-        static_params = [None] * len(p0)
-
     expected_param_count = len(SARSA_PARAM_BOUNDS) + len(user_param_bounds)
     if len(p0) != expected_param_count:
         raise ValueError(
             "p0 length must match SARSA plus user-defined parameters; "
             f"got {len(p0)} and expected {expected_param_count}"
         )
-    if len(static_params) != len(p0):
-        raise ValueError(
-            "static_params must match p0 length; "
-            f"got {len(static_params)} and {len(p0)}"
-        )
     if transition_reward_func is None and len(p0) != len(SARSA_PARAM_BOUNDS):
         raise ValueError("user-defined parameters require transition_reward_func")
 
-    _validate_quintuples(quintuples, q0)
-    bounds = SARSA_PARAM_BOUNDS + list(user_param_bounds)
-
-    res = optimize.minimize(
-        run_and_loss,
-        x0=p0,
-        args=(static_params, quintuples, q0, transition_reward_func),
-        bounds=bounds,
+    static_params = resolve_static_params(
+        static_params,
+        len(p0),
+        fit_beta=fit_beta,
+        policy_beta=policy_beta,
     )
 
-    loss = res.fun
-    params = res.x
-    logger.info("Optimizer finished: success=%s, message=%s", res.success, res.message)
-    params = merge(params, static_params)
+    _validate_quintuples(quintuples, q0)
+    full_bounds = SARSA_PARAM_BOUNDS + list(user_param_bounds)
+    full_p0 = merge(p0, static_params)
+    trainable_p0 = select_trainable_params(full_p0, static_params)
+    trainable_bounds = select_trainable_bounds(full_bounds, static_params)
+
+    if len(trainable_p0) == 0:
+        params = full_p0
+        loss = float(run_and_loss(params, quintuples, q0, transition_reward_func))
+        logger.info("Optimizer skipped: all parameters fixed")
+    else:
+        res = optimize.minimize(
+            run_and_loss_trainable,
+            x0=trainable_p0,
+            args=(static_params, quintuples, q0, transition_reward_func),
+            bounds=trainable_bounds,
+            method="L-BFGS-B",
+        )
+
+        loss = float(res.fun)
+        params = materialize_params(res.x, static_params)
+        logger.info(
+            "Optimizer finished: success=%s, message=%s", res.success, res.message
+        )
 
     q_trajectory, logprob_trajectory, error = run(
         params, quintuples, q0, transition_reward_func
