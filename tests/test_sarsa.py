@@ -662,6 +662,57 @@ class TestSarsaFitOptimization:
         with pytest.raises(ValueError, match="non-negative"):
             sarsa.fit(quintuples, q0, p0, policy_beta=-0.1)
 
+    def test_fit_accepts_static_sarsa_edge_values(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fail_minimize(*args, **kwargs):
+            raise AssertionError("optimizer should not be called when all params are fixed")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fail_minimize)
+
+        params, loss, _, _ = sarsa.fit(
+            quintuples,
+            q0,
+            p0,
+            static_params=[0.0, 0.0, 1.0 - sarsa.EPS],
+        )
+
+        assert np.allclose(params, np.array([0.0, 0.0, 1.0 - sarsa.EPS]))
+        assert np.isfinite(loss)
+
+    @pytest.mark.parametrize(
+        "static_params",
+        [
+            [1.5, None, None],
+            [None, -0.1, None],
+            [None, None, 1.0],
+        ],
+    )
+    def test_fit_rejects_out_of_bounds_static_sarsa_params(self, static_params):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        with pytest.raises(ValueError, match=r"static_params\[[0-2]\].*violates bounds"):
+            sarsa.fit(quintuples, q0, p0, static_params=static_params)
+
+    def test_fit_rejects_out_of_bounds_static_user_param(self):
+        quintuples = make_toy_quintuples(reward=np.nan)
+        q0 = np.zeros((1, 2))
+        p0 = sarsa.concat_params(np.array([0.25, 0.75, 0.5]), np.array([2.0]))
+
+        with pytest.raises(ValueError, match=r"static_params\[3\].*violates bounds"):
+            sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                static_params=[None, None, None, 0.5],
+                transition_reward_func=toy_transition_reward,
+                user_param_bounds=[(1.0, None)],
+            )
+
     def test_fit_warns_when_trainable_sarsa_param_hits_bound(self, monkeypatch):
         quintuples = make_toy_quintuples(reward=1.0)
         q0 = np.zeros((1, 2))

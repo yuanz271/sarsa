@@ -336,6 +336,28 @@ def resolve_static_params(
     return resolved
 
 
+def validate_fixed_params_against_bounds(
+    static_params: Sequence[float | None],
+    bounds: Sequence[tuple[float | None, float | None]],
+    *,
+    label: str = "static_params",
+) -> None:
+    """Validate explicit fixed parameter values against inclusive box bounds."""
+    if len(static_params) != len(bounds):
+        raise ValueError(
+            f"{label} must match bounds length; got {len(static_params)} and {len(bounds)}"
+        )
+    for i, (value, bound) in enumerate(zip(static_params, bounds)):
+        if value is None:
+            continue
+        value = float(value)
+        lower, upper = bound
+        if not np.isfinite(value):
+            raise ValueError(f"{label}[{i}] must be finite; got {value}")
+        if (lower is not None and value < lower) or (upper is not None and value > upper):
+            raise ValueError(f"{label}[{i}]={value} violates bounds {bound}")
+
+
 def warn_if_sarsa_params_hit_bounds(
     sarsa_params: Sequence[float] | NDArray,
     static_sarsa_params: Sequence[float | None],
@@ -619,7 +641,8 @@ def fit(
         Initial guess for the full flat parameter vector.
     static_params : list[float | None] or None, optional
         Optional fixed parameter values matching the full parameter vector length.
-        Explicit fixed values override the default beta hyperparameter handling.
+        Explicit fixed values override the default beta hyperparameter handling and
+        must satisfy the corresponding parameter bounds.
     transition_reward_func : Callable or None, optional
         Optional callback with signature
         ``(user_params, s1, a1, s2) -> tuple[NDArray, float]``.
@@ -659,8 +682,8 @@ def fit(
         inconsistent next-state, or if logprob/action lengths mismatch.
     ValueError
         If quintuples are empty, indices are incompatible with ``q0``, parameter lengths
-        are inconsistent, policy beta is invalid, or user-defined parameters are
-        requested without a reward callback.
+        are inconsistent, explicit fixed parameters violate bounds, policy beta is
+        invalid, or user-defined parameters are requested without a reward callback.
 
     Notes
     -----
@@ -702,6 +725,7 @@ def fit(
 
     _validate_quintuples(quintuples, q0)
     full_bounds = SARSA_PARAM_BOUNDS + list(user_param_bounds)
+    validate_fixed_params_against_bounds(static_params, full_bounds)
     full_p0 = merge(p0, static_params)
     trainable_p0 = select_trainable_params(full_p0, static_params)
     trainable_bounds = select_trainable_bounds(full_bounds, static_params)
