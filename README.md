@@ -104,11 +104,11 @@ set `fit_beta=True` if you want `beta` to be optimized.
 
 ## Documentation
 
-Full documentation is available on the [GitHub Wiki](https://github.com/yuanz271/sarsa/wiki):
+Full documentation is available in the repo under [`docs/`](docs/README.md):
 
-- [Algorithm](https://github.com/yuanz271/sarsa/wiki/Algorithm) — SARSA model and update rule
-- [Manual](https://github.com/yuanz271/sarsa/wiki/Manual) — API reference and usage guide
-- [Example](https://github.com/yuanz271/sarsa/wiki/Example) — Full walkthrough
+- [`docs/Algorithm.md`](docs/Algorithm.md) — SARSA model and update rule
+- [`docs/Manual.md`](docs/Manual.md) — API reference and usage guide
+- [`docs/Example.md`](docs/Example.md) — Full walkthrough
 
 ## Contributing
 
