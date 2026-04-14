@@ -10,13 +10,20 @@ Mirrors the workflow in examples/sarsa.ipynb to verify:
 """
 
 from enum import IntEnum
+from importlib import metadata
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
 
+import sarsa as sarsa_package
 from sarsa import sarsa
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Optimized SARSA parameters landed on bounds.*"
+)
 
 # ---------------------------------------------------------------------------
 # Experiment helpers (copied from examples/experiment.py for test isolation)
@@ -202,16 +209,21 @@ def row_to_state(row):
 PROJECT_ROOT = Path(__file__).parent.parent
 MIN_PENALTY = 1.0
 REWARD_VALUE = 1.0
-CUSTOM_PARAM_BOUNDS = [
+USER_PARAM_BOUNDS = [
     (MIN_PENALTY, None),  # shock
     (0.0, None),  # avoidance
 ]
 
 
-def transition_reward(params, state, action, new_state):
+class UserParamIndex(IntEnum):
+    shock = 0
+    avoidance = 1
+
+
+def transition_reward(user_params, state, action, new_state):
     reward_value = REWARD_VALUE
-    shock_value = params[3]
-    escape_value = params[4]
+    shock_value = user_params[UserParamIndex.shock]
+    escape_value = user_params[UserParamIndex.avoidance]
     val = 0.0
 
     if state[StateAxis.Loc] == Location.R and state[StateAxis.Light] > 0:
@@ -228,7 +240,7 @@ def transition_reward(params, state, action, new_state):
 
 def init_params(rng, bounds):
     bmin = np.array([b[0] for b in bounds])
-    p0 = bmin + 0.5 * rng.random(size=len(sarsa.ParamIndex) + 2)
+    p0 = bmin + 0.5 * rng.random(size=len(bounds))
     return p0
 
 
@@ -268,8 +280,8 @@ def make_toy_quintuples(reward=2.0):
     ]
 
 
-def toy_transition_reward(params, state, action, new_state):
-    return new_state, params[3]
+def toy_transition_reward(user_params, state, action, new_state):
+    return new_state, user_params[0]
 
 
 # ---------------------------------------------------------------------------
@@ -309,13 +321,74 @@ def initial_q():
 
 @pytest.fixture
 def initial_params(rng):
-    param_bounds = sarsa.PARAM_BOUNDS + CUSTOM_PARAM_BOUNDS
+    param_bounds = sarsa.SARSA_PARAM_BOUNDS + USER_PARAM_BOUNDS
     return init_params(rng, param_bounds)
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+
+class TestPackageMetadata:
+    def test_package_version_matches_installed_metadata(self):
+        assert sarsa_package.__version__ == metadata.version("sarsa")
+
+
+class TestParameterPacking:
+    def test_concat_and_split_roundtrip(self):
+        sarsa_params = np.array([0.5, 1.0, 0.9])
+        user_params = np.array([1.5, 0.25])
+
+        params = sarsa.concat_params(sarsa_params, user_params)
+        split_sarsa_params, split_user_params = sarsa.split_params(params)
+
+        assert np.allclose(split_sarsa_params, sarsa_params)
+        assert np.allclose(split_user_params, user_params)
+
+
+class TestSarsaParameterBounds:
+    def test_canonical_bounds_match_edge_safe_domains(self):
+        assert sarsa.SARSA_PARAM_BOUNDS == [
+            (0.0, 1.0),
+            (0.0, None),
+            (0.0, 1.0 - sarsa.EPS),
+        ]
+
+    def test_update_allows_alpha_zero_without_learning(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.zeros((1, 2))
+
+        q_new, error = sarsa.update(np.array([0.0, 1.0, 0.5]), quintuple, q0)
+
+        assert np.allclose(q_new, q0)
+        assert error == pytest.approx(2.0)
+
+    def test_update_allows_alpha_one_full_td_step(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.array([[1.0, 0.0]])
+
+        q_new, error = sarsa.update(np.array([1.0, 1.0, 0.5]), quintuple, q0)
+
+        assert error == pytest.approx(1.5)
+        assert q_new[0, 0] == pytest.approx(2.5)
+
+    def test_update_allows_gamma_zero_for_immediate_reward_only(self):
+        quintuple = make_toy_quintuples(reward=2.0)[0]
+        q0 = np.array([[1.0, 0.0]])
+
+        q_new, error = sarsa.update(np.array([1.0, 1.0, 0.0]), quintuple, q0)
+
+        assert error == pytest.approx(1.0)
+        assert q_new[0, 0] == pytest.approx(2.0)
+
+    def test_action_logprob_is_uniform_when_beta_is_zero(self):
+        logprob = sarsa.action_logprob(
+            np.array([0.5, 0.0, 0.5]),
+            np.array([2.0, -1.0, 7.0]),
+        )
+
+        assert np.allclose(sarsa.to_prob(logprob), np.full(3, 1 / 3))
 
 
 class TestSarsaFit:
@@ -326,7 +399,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         assert params is not None
         assert loss is not None
@@ -338,7 +411,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         assert np.isfinite(loss)
 
@@ -349,7 +422,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         T = len(quintuples)
         expected_shape = (T + 1, *STATE_SPEC, ACTION_SIZE)
@@ -362,7 +435,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         assert not np.allclose(q_trajectory[0], q_trajectory[-1])
 
@@ -373,7 +446,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         T = len(quintuples)
         assert action_prob.shape == (T, ACTION_SIZE)
@@ -385,7 +458,7 @@ class TestSarsaFit:
             p0=initial_params,
             static_params=None,
             transition_reward_func=transition_reward,
-            custom_param_bounds=CUSTOM_PARAM_BOUNDS,
+            user_param_bounds=USER_PARAM_BOUNDS,
         )
         row_sums = action_prob.sum(axis=1)
         assert np.allclose(row_sums, 1.0)
@@ -393,7 +466,7 @@ class TestSarsaFit:
 
 class TestSarsaRun:
     def test_run_updates_q_sequentially(self, quintuples, initial_q):
-        params = np.array([0.5, 1.0, 0.9, 1.0, 0.5])
+        params = sarsa.concat_params(np.array([0.5, 1.0, 0.9]), np.array([1.0, 0.5]))
         qs, logprob, error = sarsa.run(params, quintuples, initial_q, transition_reward)
         assert not np.allclose(qs[0], qs[-1])
 
@@ -408,10 +481,24 @@ class TestSarsaRun:
         assert error[0] == pytest.approx(2.0)
         assert quintuples[0].r2 == pytest.approx(2.0)
 
+    def test_run_passes_only_user_params_to_reward_callback(self):
+        quintuples = make_toy_quintuples(reward=2.0)
+        q0 = np.zeros((1, 2))
+        params = sarsa.concat_params(np.array([1.0, 1.0, 0.0]), np.array([5.0, 7.0]))
+        captured = {}
+
+        def record_user_params(user_params, state, action, new_state):
+            captured["user_params"] = user_params.copy()
+            return new_state, user_params[0]
+
+        sarsa.run(params, quintuples, q0, record_user_params)
+
+        assert np.allclose(captured["user_params"], np.array([5.0, 7.0]))
+
     def test_run_recomputes_rewards_when_callback_is_provided(self):
         quintuples = make_toy_quintuples(reward=2.0)
         q0 = np.zeros((1, 2))
-        params = np.array([1.0, 1.0, 0.0, 5.0])
+        params = sarsa.concat_params(np.array([1.0, 1.0, 0.0]), np.array([5.0]))
 
         qs, _, error = sarsa.run(params, quintuples, q0, toy_transition_reward)
 
@@ -436,15 +523,250 @@ class TestSarsaFitVanilla:
 
         params, loss, q_trajectory, action_prob = sarsa.fit(quintuples, q0, p0)
 
-        assert params.shape == (3,)
+        assert params.shape == (len(sarsa.SARSA_PARAM_BOUNDS),)
         assert np.isfinite(loss)
         assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
         assert action_prob.shape == (len(quintuples), 2)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(sarsa.DEFAULT_POLICY_BETA)
 
     def test_fit_rejects_extra_params_without_reward_callback(self):
         quintuples = make_toy_quintuples(reward=1.0)
         q0 = np.zeros((1, 2))
         p0 = np.array([0.5, 1.0, 0.5, 2.0])
 
-        with pytest.raises(ValueError, match="extra trainable parameters"):
-            sarsa.fit(quintuples, q0, p0, custom_param_bounds=[(0.0, None)])
+        with pytest.raises(ValueError, match="user-defined parameters require"):
+            sarsa.fit(quintuples, q0, p0, user_param_bounds=[(0.0, None)])
+
+
+class TestSarsaFitOptimization:
+    def test_fit_fixes_beta_by_default_and_uses_reduced_subspace(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.1, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            captured["bounds"] = list(bounds)
+            captured["method"] = method
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, loss, _, _ = sarsa.fit(quintuples, q0, p0)
+
+        assert captured["method"] == "L-BFGS-B"
+        assert captured["x0"].shape == (2,)
+        assert captured["bounds"] == [
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.alpha],
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.gamma],
+        ]
+        assert loss == pytest.approx(0.0)
+        assert params[sarsa.ParamIndex.alpha] == pytest.approx(p0[sarsa.ParamIndex.alpha])
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(sarsa.DEFAULT_POLICY_BETA)
+        assert params[sarsa.ParamIndex.gamma] == pytest.approx(p0[sarsa.ParamIndex.gamma])
+
+    def test_fit_can_opt_in_to_beta_optimization(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            captured["bounds"] = list(bounds)
+            captured["method"] = method
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, _, _, _ = sarsa.fit(quintuples, q0, p0, fit_beta=True)
+
+        assert captured["method"] == "L-BFGS-B"
+        assert captured["x0"].shape == (3,)
+        assert captured["bounds"] == list(sarsa.SARSA_PARAM_BOUNDS)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(p0[sarsa.ParamIndex.beta])
+
+    def test_explicit_static_beta_overrides_fit_beta(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["x0"] = np.array(x0, copy=True)
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        with pytest.warns(UserWarning, match="fit_beta=True ignored"):
+            params, _, _, _ = sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                static_params=[None, 2.5, None],
+                fit_beta=True,
+            )
+
+        assert captured["x0"].shape == (2,)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(2.5)
+
+    def test_fit_skips_optimizer_when_all_params_are_fixed(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fail_minimize(*args, **kwargs):
+            raise AssertionError("optimizer should not be called when all params are fixed")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fail_minimize)
+
+        params, loss, q_trajectory, action_prob = sarsa.fit(
+            quintuples,
+            q0,
+            p0,
+            static_params=[0.25, 2.5, 0.5],
+        )
+
+        assert np.allclose(params, np.array([0.25, 2.5, 0.5]))
+        assert np.isfinite(loss)
+        assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
+        assert action_prob.shape == (len(quintuples), 2)
+
+    def test_fit_accepts_zero_policy_beta(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+        captured = {}
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            captured["bounds"] = list(bounds)
+            return SimpleNamespace(x=np.array(x0, copy=True), fun=0.0, success=True, message="ok")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        params, loss, _, _ = sarsa.fit(quintuples, q0, p0, policy_beta=0.0)
+
+        assert captured["bounds"] == [
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.alpha],
+            sarsa.SARSA_PARAM_BOUNDS[sarsa.ParamIndex.gamma],
+        ]
+        assert loss == pytest.approx(0.0)
+        assert params[sarsa.ParamIndex.beta] == pytest.approx(0.0)
+
+    def test_fit_rejects_negative_policy_beta(self):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        with pytest.raises(ValueError, match="non-negative"):
+            sarsa.fit(quintuples, q0, p0, policy_beta=-0.1)
+
+    def test_fit_accepts_static_sarsa_edge_values(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fail_minimize(*args, **kwargs):
+            raise AssertionError("optimizer should not be called when all params are fixed")
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fail_minimize)
+
+        params, loss, _, _ = sarsa.fit(
+            quintuples,
+            q0,
+            p0,
+            static_params=[0.0, 0.0, 1.0 - sarsa.EPS],
+        )
+
+        assert np.allclose(params, np.array([0.0, 0.0, 1.0 - sarsa.EPS]))
+        assert np.isfinite(loss)
+
+    @pytest.mark.parametrize(
+        "static_params",
+        [
+            [1.5, None, None],
+            [None, -0.1, None],
+            [None, None, 1.0],
+        ],
+    )
+    def test_fit_rejects_out_of_bounds_static_sarsa_params(self, static_params):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        with pytest.raises(ValueError, match=r"static_params\[[0-2]\].*violates bounds"):
+            sarsa.fit(quintuples, q0, p0, static_params=static_params)
+
+    def test_fit_rejects_out_of_bounds_static_user_param(self):
+        quintuples = make_toy_quintuples(reward=np.nan)
+        q0 = np.zeros((1, 2))
+        p0 = sarsa.concat_params(np.array([0.25, 0.75, 0.5]), np.array([2.0]))
+
+        with pytest.raises(ValueError, match=r"static_params\[3\].*violates bounds"):
+            sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                static_params=[None, None, None, 0.5],
+                transition_reward_func=toy_transition_reward,
+                user_param_bounds=[(1.0, None)],
+            )
+
+    def test_fit_warns_when_trainable_sarsa_param_hits_bound(self, monkeypatch):
+        quintuples = make_toy_quintuples(reward=1.0)
+        q0 = np.zeros((1, 2))
+        p0 = np.array([0.25, 0.75, 0.5])
+
+        def fake_minimize(fun, x0, args, bounds, method):
+            return SimpleNamespace(
+                x=np.array([x0[0], 1.0 - sarsa.EPS]),
+                fun=0.0,
+                success=True,
+                message="ok",
+            )
+
+        monkeypatch.setattr(sarsa.optimize, "minimize", fake_minimize)
+
+        with pytest.warns(UserWarning, match=r"landed on bounds.*gamma≈upper"):
+            params, _, _, _ = sarsa.fit(quintuples, q0, p0)
+
+        assert params[sarsa.ParamIndex.gamma] == pytest.approx(1.0 - sarsa.EPS)
+
+
+class TestSarsaFitCompatibility:
+    def test_fit_accepts_deprecated_custom_param_bounds_alias(self):
+        quintuples = make_toy_quintuples(reward=np.nan)
+        q0 = np.zeros((1, 2))
+        p0 = sarsa.concat_params(np.array([0.5, 1.0, 0.5]), np.array([2.0]))
+
+        with pytest.warns(FutureWarning, match="custom_param_bounds"):
+            params, loss, q_trajectory, action_prob = sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                transition_reward_func=toy_transition_reward,
+                custom_param_bounds=[(0.0, None)],
+            )
+
+        assert params.shape == (4,)
+        assert np.isfinite(loss)
+        assert q_trajectory.shape == (len(quintuples) + 1, 1, 2)
+        assert action_prob.shape == (len(quintuples), 2)
+
+    def test_fit_rejects_both_user_and_custom_param_bounds(self):
+        quintuples = make_toy_quintuples(reward=np.nan)
+        q0 = np.zeros((1, 2))
+        p0 = sarsa.concat_params(np.array([0.5, 1.0, 0.5]), np.array([2.0]))
+
+        with pytest.raises(
+            ValueError, match="Specify only one of user_param_bounds or custom_param_bounds"
+        ):
+            sarsa.fit(
+                quintuples,
+                q0,
+                p0,
+                transition_reward_func=toy_transition_reward,
+                user_param_bounds=[(0.0, None)],
+                custom_param_bounds=[(0.0, None)],
+            )

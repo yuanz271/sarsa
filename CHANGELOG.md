@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-13
+
+### Changed
+- `fit()` now treats `beta` as a fixed policy hyperparameter by default and only optimizes it when `fit_beta=True` is requested.
+- Fixed parameters are now removed from the optimization subspace instead of being overwritten inside the objective, improving conditioning when parameters such as `beta` are held constant.
+- `fit()` now selects `L-BFGS-B` explicitly for bounded optimization.
+- Canonical SARSA bounds now use edge-safe box domains: `alpha ∈ [0, 1]`, `beta ∈ [0, ∞)`, and `gamma ∈ [0, 1)`.
+- `fit()` now warns when trainable canonical SARSA parameters land on active bounds, since this often indicates weak identifiability or conditioning.
+- Explicit fixed parameters supplied through `static_params` are now validated against their declared bounds.
+
+## [0.3.0] - 2026-04-11
+
+### Added
+- Added `concat_params()` and `split_params()` helpers to centralize packing and unpacking of flat optimizer vectors into SARSA-owned and user-defined parameter blocks.
+
+### Changed
+- Refactored parameter handling around explicit `sarsa_params` and `user_params` blocks while preserving a single flat optimizer vector internally.
+- Changed the reward callback contract: `transition_reward_func` now receives `user_params` rather than the full parameter vector — **breaking change**.
+- Introduced `user_param_bounds` as the preferred `fit()` argument name; `custom_param_bounds` remains accepted as a deprecated compatibility alias.
+- Switched package metadata to file-backed dynamic versioning with `src/sarsa/__about__.py` as the single source of truth.
+
 ## [0.2.0] - 2026-04-11
 
 ### Added
@@ -31,6 +52,8 @@ All notable changes to this project will be documented in this file.
 - Kept experiment helpers next to the walkthrough so the `sarsa` package remains task-agnostic.
 - Computed stepwise rewards during `run` so `update` can consume them directly, keeping reward-related parameters consistent across trajectories.
 
-[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/yuanz271/sarsa/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/yuanz271/sarsa/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/yuanz271/sarsa/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yuanz271/sarsa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yuanz271/sarsa/releases/tag/v0.1.0
