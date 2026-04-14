@@ -21,6 +21,10 @@ jupyter lab examples/sarsa.ipynb
 ## Model
 
 This library implements tabular on-policy SARSA with a softmax policy.
+It uses a **composite state** and a **flat action** representation: each state
+`s` is a 1-D integer vector of discrete state-factor indices, while each
+action `a` is a single discrete action index. Equivalently, `Q` has shape
+`(*state_dims, n_actions)`.
 
 Temporal-difference error:
 
