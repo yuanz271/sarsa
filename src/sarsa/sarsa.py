@@ -4,7 +4,12 @@
 SARSA
 
 This implementation is designed to be independent from the interpretation of state and action.
-It only requires the state and action to be integer NumPy arrays.
+It uses a composite state and a flat action representation:
+
+- state: a 1-D integer NumPy array of discrete state-factor indices
+- action: a single discrete integer action index
+
+Equivalently, ``Q`` has shape ``(*state_dims, n_actions)``.
 
 The flat parameter vector is the concatenation of two blocks:
 
