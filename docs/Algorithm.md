@@ -9,6 +9,8 @@ In this implementation, **state is composite** and **action is flat**:
 - `a` is represented as a single discrete action index
 
 Equivalently, `Q` has shape `(*state_dims, n_actions)`.
+For example, if `Q.shape == (3, 4, 4, 3)`, then `s = [2, 1, 3]` and `a = 0`
+index `Q[2, 1, 3, 0]`.
 
 ## Action-value function
 

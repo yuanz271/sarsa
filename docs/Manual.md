@@ -10,6 +10,8 @@ It uses a **composite state** and **flat action** representation:
 - each action is a single discrete integer action index
 
 Equivalently, `q0` has shape `(*state_dims, n_actions)`.
+For example, if `q0.shape == (3, 4, 4, 3)`, then a state like `s = [2, 1, 3]`
+and action `a = 0` index the value `q0[2, 1, 3, 0]`.
 
 ---
 

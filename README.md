@@ -23,6 +23,9 @@ It uses a **composite state** and a **flat action** representation: each state
 action `a` is a single discrete action index. Equivalently, `Q` has shape
 `(*state_dims, n_actions)`.
 
+For example, if `Q.shape == (3, 4, 4, 3)`, then a state like `s = [2, 1, 3]`
+and action `a = 0` index the value `Q[2, 1, 3, 0]`.
+
 Temporal-difference error:
 
 $$
