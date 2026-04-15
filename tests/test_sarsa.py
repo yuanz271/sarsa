@@ -3,7 +3,7 @@
 """
 Integration test for SARSA fitting workflow.
 
-Mirrors the workflow in examples/sarsa.ipynb to verify:
+Verifies:
 - fit() runs without error and optimizer converges
 - Q-values update over time (sequential learning works)
 - Loss is finite
@@ -11,7 +11,6 @@ Mirrors the workflow in examples/sarsa.ipynb to verify:
 
 from enum import IntEnum
 from importlib import metadata
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -26,14 +25,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 # ---------------------------------------------------------------------------
-# Experiment helpers (copied from examples/experiment.py for test isolation)
-#
-# WARNING: These helpers are intentionally duplicated from examples/experiment.py
-# to keep the test suite self-contained.  If the experiment logic changes in
-# examples/experiment.py, the corresponding helpers here must be updated manually.
-#
-# Test data dependency: tests rely on examples/M1.csv (~6.3 MB behavioural
-# dataset).  The file must be present for the test suite to pass.
+# Synthetic experiment helpers for test isolation
 # ---------------------------------------------------------------------------
 
 LIGHT_ONSET_LC = np.array(
@@ -206,7 +198,6 @@ def row_to_state(row):
 # Test constants and helpers
 # ---------------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).parent.parent
 MIN_PENALTY = 1.0
 REWARD_VALUE = 1.0
 USER_PARAM_BOUNDS = [
@@ -290,20 +281,31 @@ def toy_transition_reward(user_params, state, action, new_state):
 
 
 @pytest.fixture
-def data_path():
-    return PROJECT_ROOT / "examples" / "M1.csv"
-
-
-@pytest.fixture
 def rng():
     return np.random.default_rng(0)
 
 
 @pytest.fixture
-def behavior_data(data_path):
-    df = pd.read_csv(data_path, encoding="unicode_escape", header=0)
-    df = df.rename(columns={df.columns[0]: "Time (s)"})
-    df.columns = list(map(str.upper, df.columns))
+def behavior_data():
+    horizon = int(SHOCK_ONSET_LC.max() + 40)
+    time = np.arange(horizon, dtype=float)
+
+    loc = np.arange(horizon, dtype=int) % 3
+    in_platform = (loc == Location.P).astype(int)
+    in_center = (loc == Location.C).astype(int)
+    in_reward_zone = (loc == Location.R).astype(int)
+
+    df = pd.DataFrame(
+        {
+            "TIME (S)": time,
+            "IN PLATFORM": in_platform,
+            "IN CENTER": in_center,
+            "IN REWARD ZONE": in_reward_zone,
+            "NEW SPEAKER ACTIVE": np.zeros(horizon, dtype=int),
+            "SHOCKER ON ACTIVE": np.zeros(horizon, dtype=int),
+        }
+    )
+
     df = downsample_behavior_data(df, "1s")
     df = process_data(df)
     return df

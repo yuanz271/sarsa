@@ -69,7 +69,7 @@ estimate `beta` explicitly, or pass an explicit beta value through
 `static_params` to override the default fixed value.
 
 The default is `sarsa.DEFAULT_POLICY_BETA = 5.0`. That value was chosen as a
-conservative large-yet-stable setting on the bundled `examples/M1.csv` session:
+conservative large-yet-stable setting from an internal sensitivity sweep:
 fits remained well behaved around `beta ≈ 5–8`, while `beta >= 12` showed
 seed-dependent instability and occasional numerical warnings. Treat this as a
 modeling default, not a universal constant, and rerun a sensitivity sweep for

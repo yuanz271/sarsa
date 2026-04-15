@@ -4,7 +4,7 @@
 
 ## Overview
 
-SARSA reinforcement learning toolkit for fitting behavioural datasets. Pure Python library (numpy, scipy) with Jupyter notebook workflow.
+SARSA reinforcement learning toolkit. Pure Python library (numpy, scipy) with in-repo Markdown documentation.
 
 ## Git Workflow
 
@@ -17,14 +17,10 @@ SARSA reinforcement learning toolkit for fitting behavioural datasets. Pure Pyth
 ```
 sarsa/
 ├── src/sarsa/           # Core SARSA algorithm (sarsa.py, __init__.py)
-├── examples/            # Notebook demo + experiment helpers + sample data
-│   ├── sarsa.ipynb      # Primary entry point - run this
-│   ├── experiment.py    # Task-specific state/reward helpers
-│   ├── README.md        # Examples directory guide
-│   └── M1.csv           # Sample behavioural dataset (6.3MB)
 ├── tests/               # Test suite (pytest)
 │   ├── __init__.py      # Package marker for pytest discovery
-│   └── test_sarsa.py    # Integration tests mirroring notebook workflow
+│   └── test_sarsa.py    # Integration tests
+├── docs/                # Project documentation (Algorithm, Manual, Example)
 ├── .gitignore           # Git ignore rules
 ├── AGENTS.md            # Repository guidelines for AI agents
 ├── CHANGELOG.md         # Release history
@@ -38,10 +34,9 @@ sarsa/
 | Task | Location | Notes |
 |------|----------|-------|
 | SARSA algorithm | `src/sarsa/sarsa.py` | `fit()`, `run()`, `update()`, `Quintuple` |
-| State construction | `examples/experiment.py` | `row_to_state()`, `process_data()` |
-| Full workflow demo | `examples/sarsa.ipynb` | Start here for understanding |
-| Add new analysis | `src/sarsa/` | Keep package task-agnostic |
-| Add experiment helper | `examples/` | Task-specific code goes here |
+| API details | `docs/Manual.md` | Full parameter and function reference |
+| Model equations | `docs/Algorithm.md` | SARSA update + policy |
+| End-to-end usage | `docs/Example.md` | Vanilla + extended usage walkthrough |
 
 ## Code Map
 
@@ -64,12 +59,11 @@ sarsa/
 ```bash
 # Install (dependency + venv management)
 uv sync                        # Runtime deps only
-uv sync --extra examples       # + JupyterLab for notebook
-uv sync --group dev            # + pytest for testing
+uv sync --group dev            # + pandas/pytest for testing
 pip install -e .               # Alternative editable install
 
-# Run
-jupyter lab examples/sarsa.ipynb   # Primary workflow
+# Docs preview (optional)
+uvx --from jupyterlab jupyter lab
 
 # Test
 uv run pytest tests/ -v            # Run test suite
@@ -114,4 +108,3 @@ uvx ty check
 - State/action must be integer numpy arrays
 - First 3 params are always (alpha, beta, gamma); custom params follow
 - `transition_reward_func` callback computes rewards on-the-fly during `run()`
-- Large datasets: place outside `examples/`, document location

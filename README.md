@@ -12,11 +12,8 @@ pip install git+https://github.com/yuanz271/sarsa.git@v0.4.0
 
 ## Example
 
-Run the bundled walkthrough notebook for an end-to-end usage example:
-
-```bash
-jupyter lab examples/sarsa.ipynb
-```
+See [`docs/Example.md`](docs/Example.md) for an end-to-end usage walkthrough,
+including vanilla and extended `fit()` usage patterns.
 
 ## Model
 
