@@ -6,10 +6,13 @@ The `sarsa` module provides a tabular SARSA implementation designed to be indepe
 of the interpretation of state and action.
 
 It uses a **composite state** and **flat action** representation:
-- each state is a 1-D integer NumPy array of discrete state-factor indices
-- each action is a single discrete integer action index
+- each state is represented as a length-`k` integer NumPy array of discrete
+  state-factor indices, one entry per state factor
+- each action is a single integer index into the action axis
 
 Equivalently, `q0` has shape `(*state_dims, n_actions)`.
+For example, if `q0.shape == (3, 4, 4, 3)`, then a state like `s = [2, 1, 3]`
+and action `a = 0` index the value `q0[2, 1, 3, 0]`.
 
 ---
 
@@ -69,7 +72,7 @@ estimate `beta` explicitly, or pass an explicit beta value through
 `static_params` to override the default fixed value.
 
 The default is `sarsa.DEFAULT_POLICY_BETA = 5.0`. That value was chosen as a
-conservative large-yet-stable setting on the bundled `examples/M1.csv` session:
+conservative large-yet-stable setting from an internal sensitivity sweep:
 fits remained well behaved around `beta ≈ 5–8`, while `beta >= 12` showed
 seed-dependent instability and occasional numerical warnings. Treat this as a
 modeling default, not a universal constant, and rerun a sensitivity sweep for

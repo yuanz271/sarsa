@@ -6,15 +6,14 @@
 the development environment.
 
 ```bash
-uv sync --group dev            # Install dev dependencies (pytest, ruff, ty)
-uv sync --extra examples       # Also install JupyterLab for the notebook
+uv sync --group dev            # Install dev dependencies (pytest, ruff, ty, pandas)
+uvx --from jupyterlab jupyter lab
 ```
 
 ### Editable install from source
 
 ```bash
 pip install -e .               # Runtime deps only
-pip install -e .[examples]     # + JupyterLab for notebook
 ```
 
 ## Running tests
@@ -23,7 +22,7 @@ pip install -e .[examples]     # + JupyterLab for notebook
 uv run pytest tests/ -v
 ```
 
-The test suite requires `examples/M1.csv` (~6.3 MB) to be present.
+The test suite uses synthetic in-repo fixtures and does not depend on external datasets.
 
 ## Linting and formatting
 

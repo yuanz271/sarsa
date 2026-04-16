@@ -6,8 +6,9 @@ SARSA
 This implementation is designed to be independent from the interpretation of state and action.
 It uses a composite state and a flat action representation:
 
-- state: a 1-D integer NumPy array of discrete state-factor indices
-- action: a single discrete integer action index
+- state: a length-``k`` integer NumPy array of discrete state-factor indices,
+  one entry per state factor
+- action: a single discrete integer action index into the action axis
 
 Equivalently, ``Q`` has shape ``(*state_dims, n_actions)``.
 

@@ -5,10 +5,13 @@ It learns an action-value function **Q(s, a)** directly from experience by updat
 predictions step-by-step as transitions are observed.
 
 In this implementation, **state is composite** and **action is flat**:
-- `s` is represented as a 1-D integer vector of discrete state-factor indices
-- `a` is represented as a single discrete action index
+- `s` is represented as a length-`k` integer vector of discrete state-factor
+  indices, one entry per state factor
+- `a` is represented as a single integer index into the action axis
 
 Equivalently, `Q` has shape `(*state_dims, n_actions)`.
+For example, if `Q.shape == (3, 4, 4, 3)`, then `s = [2, 1, 3]` and `a = 0`
+index `Q[2, 1, 3, 0]`.
 
 ## Action-value function
 
