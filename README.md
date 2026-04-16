@@ -24,10 +24,10 @@ including vanilla and extended `fit()` usage patterns.
 ## Model
 
 This library implements tabular on-policy SARSA with a softmax policy.
-It uses a **composite state** and a **flat action** representation: each state
-`s` is a 1-D integer vector of discrete state-factor indices, while each
-action `a` is a single discrete action index. Equivalently, `Q` has shape
-`(*state_dims, n_actions)`.
+It uses a **composite state** and a **flat action** representation: state is
+represented as a length-k integer vector of discrete state-factor indices, one
+entry per state factor; action is a single integer index into the action axis.
+Equivalently, `Q` has shape `(*state_dims, n_actions)`.
 
 For example, if `Q.shape == (3, 4, 4, 3)`, then a state like `s = [2, 1, 3]`
 and action `a = 0` index the value `Q[2, 1, 3, 0]`.

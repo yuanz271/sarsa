@@ -6,8 +6,9 @@ The `sarsa` module provides a tabular SARSA implementation designed to be indepe
 of the interpretation of state and action.
 
 It uses a **composite state** and **flat action** representation:
-- each state is a 1-D integer NumPy array of discrete state-factor indices
-- each action is a single discrete integer action index
+- each state is represented as a length-`k` integer NumPy array of discrete
+  state-factor indices, one entry per state factor
+- each action is a single integer index into the action axis
 
 Equivalently, `q0` has shape `(*state_dims, n_actions)`.
 For example, if `q0.shape == (3, 4, 4, 3)`, then a state like `s = [2, 1, 3]`
