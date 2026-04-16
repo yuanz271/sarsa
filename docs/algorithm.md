@@ -97,4 +97,4 @@ User-defined parameters are passed to extension callbacks such as
 > **API note:** As of `v0.3.0`, `transition_reward_func` receives `user_params`.
 > Before `v0.3.0`, the reward callback received the full flat parameter vector.
 
-See [Manual](Manual.md) for the full API and [Example](Example.md) for a worked example.
+See [Manual](manual.md) for the full API and [Example](example.md) for a worked example.

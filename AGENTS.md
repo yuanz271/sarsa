@@ -34,9 +34,9 @@ sarsa/
 | Task | Location | Notes |
 |------|----------|-------|
 | SARSA algorithm | `src/sarsa/sarsa.py` | `fit()`, `run()`, `update()`, `Quintuple` |
-| API details | `docs/Manual.md` | Full parameter and function reference |
-| Model equations | `docs/Algorithm.md` | SARSA update + policy |
-| End-to-end usage | `docs/Example.md` | Vanilla + extended usage walkthrough |
+| API details | `docs/manual.md` | Full parameter and function reference |
+| Model equations | `docs/algorithm.md` | SARSA update + policy |
+| End-to-end usage | `docs/example.md` | Vanilla + extended usage walkthrough |
 
 ## Code Map
 

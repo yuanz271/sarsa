@@ -99,15 +99,15 @@ A single SARSA transition `(s1, a1, r2, s2, a2)`:
 ```python
 @dataclass
 class Quintuple:
-    s1: NDArray   # state at time t (1-D integer array)
+    s1: NDArray   # state at time t (length-k integer vector of discrete state-factor indices)
     a1: int       # action taken at time t
     r2: float     # reward received at time t+1
-    s2: NDArray   # state at time t+1 (1-D integer array)
+    s2: NDArray   # state at time t+1 (length-k integer vector of discrete state-factor indices)
     a2: int       # action taken at time t+1
 ```
 
 **Constraints:**
-- `s1` and `s2` must be 1-D integer NumPy arrays (composite state vectors)
+- `s1` and `s2` must be length-`k` integer NumPy arrays (composite state vectors)
 - `a1` and `a2` are flat integer action indices into the last axis of `q0`
 - Indices must be non-negative and within the bounds of `q0`
 - In vanilla mode, `r2` must be finite

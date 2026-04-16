@@ -9,8 +9,9 @@ The library supports two modes:
 - **Vanilla SARSA**: rewards are already stored in each `Quintuple.r2`
 - **Extended SARSA**: rewards are computed on the fly via `transition_reward_func`
 
-In both modes, state is composite (1-D integer state-factor vector) and action is
-flat (single integer action index).
+In both modes, state is composite: a length-`k` integer vector of discrete
+state-factor indices, one entry per state factor. Action is flat: a single
+integer index into the action axis.
 
 ## Step 1: Build quintuples
 
@@ -86,6 +87,6 @@ print(action_prob.shape)   # (T, n_actions)
 
 ## See also
 
-- [Algorithm](Algorithm.md) — model equations and policy
-- [Manual](Manual.md) — full API reference
+- [Algorithm](algorithm.md) — model equations and policy
+- [Manual](manual.md) — full API reference
 - [`src/sarsa/sarsa.py`](../src/sarsa/sarsa.py) — implementation details

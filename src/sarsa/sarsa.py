@@ -474,7 +474,7 @@ def _validate_quintuples(quintuples: Sequence[Quintuple], q0: NDArray) -> None:
         raise ValueError("quintuples must be non-empty")
     sample = quintuples[0]
     if sample.s1.ndim != 1 or sample.s2.ndim != 1:
-        raise ValueError("state vectors must be 1-D")
+        raise ValueError("state vectors must be length-k integer vectors")
     if not np.issubdtype(sample.s1.dtype, np.integer):
         raise ValueError("state vectors must use integer dtype")
     state_dims = q0.shape[:-1]

@@ -18,7 +18,7 @@ pip install git+https://github.com/yuanz271/sarsa.git
 
 ## Example
 
-See [`docs/Example.md`](docs/Example.md) for an end-to-end usage walkthrough,
+See [`docs/example.md`](docs/example.md) for an end-to-end usage walkthrough,
 including vanilla and extended `fit()` usage patterns.
 
 ## Model
@@ -110,11 +110,11 @@ set `fit_beta=True` if you want `beta` to be optimized.
 
 ## Documentation
 
-Full documentation is available in the repo under [`docs/`](docs/README.md):
+Full documentation is available in the repo under [`docs/`](docs/readme.md):
 
-- [`docs/Algorithm.md`](docs/Algorithm.md) — SARSA model and update rule
-- [`docs/Manual.md`](docs/Manual.md) — API reference and usage guide
-- [`docs/Example.md`](docs/Example.md) — Full walkthrough
+- [`docs/algorithm.md`](docs/algorithm.md) — SARSA model and update rule
+- [`docs/manual.md`](docs/manual.md) — API reference and usage guide
+- [`docs/example.md`](docs/example.md) — Full walkthrough
 
 ## Contributing
 
