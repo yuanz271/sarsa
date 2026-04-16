@@ -110,7 +110,7 @@ set `fit_beta=True` if you want `beta` to be optimized.
 
 ## Documentation
 
-Full documentation is available in the repo under [`docs/`](docs/readme.md):
+Full documentation is available in the repo under [`docs/`](docs/README.md):
 
 - [`docs/algorithm.md`](docs/algorithm.md) — SARSA model and update rule
 - [`docs/manual.md`](docs/manual.md) — API reference and usage guide
