@@ -12,6 +12,14 @@ SARSA reinforcement learning toolkit. Pure Python library (numpy, scipy) with in
 - Keep branches focused and short-lived.
 - Never commit, push, merge, rebase, or tag without user approval.
 
+## Branch Policy
+
+- `main` — general library branch; no demo or notebook assets.
+- `pact` — superset of `main`; contains demo and notebook-specific assets.
+  - Sync `main` into `pact` freely: switch to `pact` and run `git merge main`.
+  - Never run `git merge pact` on `main`; use `git cherry-pick <commit>` to bring specific commits to `main` if needed.
+  - `pact`-specific files (notebooks, demos) must never be committed to `main`.
+
 ## Structure
 
 ```
