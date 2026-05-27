@@ -23,6 +23,7 @@ Repository = "https://github.com/yuanz271/sarsa"
 
 [dependency-groups]
 dev = [
+    "matplotlib",
     "pandas>=2.3.3",
     "pytest>=8.0",
 ]
