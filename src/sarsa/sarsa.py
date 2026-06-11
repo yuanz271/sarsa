@@ -48,17 +48,22 @@ from scipy.special import log_softmax
 
 logger = logging.getLogger(__name__)
 
-EPS = 1e-8  # Small positive value reserved for strict gamma < 1 handling
+EPS = 1e-8  # Small positive value for strict alpha > 0 / gamma < 1 handling
 BOUNDARY_WARNING_ATOL = 1e-8
 BOUNDARY_WARNING_RTOL = 1e-5
 # Conservative near-greedy default chosen from the bundled example sweep;
 # larger beta values (around 12 and above) destabilized fits.
 DEFAULT_POLICY_BETA = 5.0
+# Finite cap on the inverse temperature. beta is mathematically unbounded above,
+# but very large beta makes the softmax policy effectively deterministic and the
+# coordinate weakly identified (flat likelihood) and destabilizes the optimizer.
+# This cap assumes Q-values are O(1); rescale for very different reward scales.
+MAX_BETA = 20.0
 SARSA_PARAM_BOUNDS = [
-    (0.0, 1.0),
-    (0.0, None),
+    (EPS, 1.0),
+    (0.0, MAX_BETA),
     (0.0, 1 - EPS),
-]  # alpha in [0, 1], beta in [0, inf), gamma in [0, 1)
+]  # alpha in (0, 1], beta in [0, MAX_BETA], gamma in [0, 1)
 PARAM_BOUNDS = SARSA_PARAM_BOUNDS  # Backward-compatible alias
 
 
