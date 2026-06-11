@@ -78,15 +78,18 @@ seed-dependent instability and occasional numerical warnings. Treat this as a
 modeling default, not a universal constant, and rerun a sensitivity sweep for
 materially different tasks or reward scales.
 
-Canonical parameter domains now follow edge-safe box constraints:
-- `alpha ∈ [0, 1]`
-- `beta ∈ [0, ∞)`
+Canonical parameter domains:
+- `alpha ∈ (0, 1]`
+- `beta ∈ [0, MAX_BETA]` (`MAX_BETA = 20`)
 - `gamma ∈ [0, 1)`
 
-This means `alpha = 0`, `alpha = 1`, `beta = 0`, and `gamma = 0` are valid edge
-cases, while exact `gamma = 1` remains excluded through the optimizer bound
-`1 - EPS`. `fit()` warns when trainable canonical SARSA parameters land on
-active bounds, since that often signals weak identifiability or conditioning.
+The degenerate edge `alpha = 0` (no learning) is excluded via a small positive
+lower bound `EPS`; `alpha = 1` (full TD replacement) is allowed. `beta` is
+capped at `MAX_BETA` to avoid the weakly-identified near-deterministic regime,
+while `beta = 0` (uniform policy) remains valid. `gamma = 0` (myopic) is valid
+and exact `gamma = 1` is excluded through the optimizer bound `1 - EPS`. `fit()`
+warns when trainable canonical SARSA parameters land on active bounds, since
+that often signals weak identifiability or conditioning.
 
 ---
 
@@ -327,5 +330,6 @@ Used internally to enforce `static_params` during optimisation.
 |------|-------|-------------|
 | `EPS` | `1e-8` | Small positive value used to keep the gamma upper bound strictly below `1` |
 | `DEFAULT_POLICY_BETA` | `5.0` | Default fixed beta used by `fit()` when `fit_beta=False`; chosen as a conservative large-yet-stable value on the bundled example session |
-| `SARSA_PARAM_BOUNDS` | `[(0.0, 1.0), (0.0, None), (0.0, 1-EPS)]` | Preferred bounds for the canonical SARSA block: `alpha ∈ [0, 1]`, `beta ∈ [0, ∞)`, `gamma ∈ [0, 1)` |
+| `MAX_BETA` | `20.0` | Finite cap on the inverse temperature; very large `beta` is weakly identified and destabilizes fits |
+| `SARSA_PARAM_BOUNDS` | `[(EPS, 1.0), (0.0, MAX_BETA), (0.0, 1-EPS)]` | Preferred bounds for the canonical SARSA block: `alpha ∈ (0, 1]`, `beta ∈ [0, MAX_BETA]`, `gamma ∈ [0, 1)` |
 | `PARAM_BOUNDS` | alias of `SARSA_PARAM_BOUNDS` | Backward-compatible alias |
