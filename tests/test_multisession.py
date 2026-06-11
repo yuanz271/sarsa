@@ -15,6 +15,7 @@ Key invariants (see ``spec/02_multisession_pooling.md``):
 
 import numpy as np
 import pytest
+from scipy.special import softmax
 
 from sarsa import sarsa
 from sarsa import multisession as ms
@@ -225,3 +226,103 @@ def test_session_specific_mask_allows_distinct_params(q0):
 def test_empty_sessions_raises(q0, p0):
     with pytest.raises(ValueError):
         ms.fit_subject([], q0=q0, p0=p0)
+
+
+# ---------------------------------------------------------------------------
+# Generative recovery + model comparison
+# ---------------------------------------------------------------------------
+
+
+def simulate_reward_learning_session(
+    rng, params, q0, n_trials, *, p_hi=0.8, p_lo=0.2, n_states=2, n_actions=2
+):
+    """Probabilistic reward-learning task; optimal action == state index.
+
+    Actions are sampled on-policy from ``softmax(beta * Q[s])``; reward is
+    stochastic (``p_hi`` for the optimal action, ``p_lo`` otherwise), which
+    makes the learning rate identifiable (unlike a deterministic environment
+    where ``alpha`` saturates at its upper bound).
+    """
+    alpha, beta, gamma = params
+    q = q0.copy()
+    s = np.array([rng.integers(n_states)], dtype=int)
+    a = int(rng.choice(n_actions, p=softmax(beta * q[tuple(s)])))
+    quints = []
+    for _ in range(n_trials):
+        p = p_hi if a == int(s[0]) else p_lo
+        r = 1.0 if rng.random() < p else 0.0
+        s2 = np.array([rng.integers(n_states)], dtype=int)
+        a2 = int(rng.choice(n_actions, p=softmax(beta * q[tuple(s2)])))
+        quints.append(sarsa.Quintuple(s1=s, a1=a, r2=r, s2=s2, a2=a2))
+        q[tuple(s) + (a,)] += alpha * (
+            r + gamma * q[tuple(s2) + (a2,)] - q[tuple(s) + (a,)]
+        )
+        s, a = s2, a2
+    return quints
+
+
+def test_pooled_parameter_recovery():
+    """Pooled fit recovers the shared generating alpha and beta."""
+    rng = np.random.default_rng(0)
+    alpha_true, beta_true = 0.35, 3.0
+    q0 = np.zeros((2, 2))
+    sessions = [
+        simulate_reward_learning_session(rng, (alpha_true, beta_true, 0.0), q0, 250)
+        for _ in range(6)
+    ]
+    result = ms.fit_subject(
+        sessions,
+        q0=q0,
+        p0=np.array([0.2, 1.5, 0.0]),
+        share_mask=[True, True, True],
+        static_params=[None, None, 0.0],  # gamma fixed (bandit-like task)
+        fit_beta=True,
+    )
+    alpha_hat, beta_hat = result.session_params[0][:2]
+    assert alpha_hat == pytest.approx(alpha_true, abs=0.1)
+    assert beta_hat == pytest.approx(beta_true, abs=0.7)
+
+
+def test_pooled_beats_per_session_by_bic():
+    """When the truth is shared, pooling wins on BIC over per-session fits.
+
+    Both models are scored on the same pooled dataset (``N`` total trials).
+    The per-session model nests the pooled one, so its in-sample NLL is always
+    lower; BIC's ``k * ln(N)`` complexity penalty is what correctly favors the
+    simpler, true generating model. AIC's weaker ``2k`` penalty can be
+    overcome by in-sample overfitting at moderate ``N``.
+    """
+    rng = np.random.default_rng(1)
+    q0 = np.zeros((2, 2))
+    sessions = [
+        simulate_reward_learning_session(rng, (0.3, 2.5, 0.0), q0, 200)
+        for _ in range(5)
+    ]
+    static = [None, None, 0.0]
+    p0 = np.array([0.2, 1.5, 0.0])
+    n_total = sum(len(s) for s in sessions)
+
+    def bic(total_nll, k):
+        return k * np.log(n_total) + 2 * total_nll
+
+    # Pooled: 2 free params (alpha, beta shared); gamma fixed.
+    pooled = ms.fit_subject(
+        sessions,
+        q0=q0,
+        p0=p0,
+        share_mask=[True, True, True],
+        static_params=static,
+        fit_beta=True,
+    )
+    pooled_bic = bic(pooled.loss * n_total, k=2)
+
+    # Per-session: 2 free params each (single model, 2 * S params total).
+    per_session_nll = 0.0
+    for session in sessions:
+        _, loss, _, _ = sarsa.fit(
+            session, q0=q0, p0=p0, static_params=static, fit_beta=True
+        )
+        per_session_nll += loss * len(session)
+    per_session_bic = bic(per_session_nll, k=2 * len(sessions))
+
+    assert pooled_bic < per_session_bic
