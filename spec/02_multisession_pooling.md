@@ -45,10 +45,14 @@ hierarchy in this iteration).
 - **D-module:** new module `src/sarsa/multisession.py`; public API
   `run_subject`, `run_and_loss_subject`, `fit_subject`. No edits to existing
   `fit`/`run` (pure addition, backward compatible).
-- **D-fixed-vs-mask:** `static_params` / `fit_beta` / `policy_beta` apply at the
-  **base-parameter** level. A fixed shared parameter fixes its single value; a
-  fixed session-specific parameter is broadcast to all sessions in v1
-  (per-session fixed values deferred).
+- **D-fixed-vs-mask:** estimation is controlled solely by `static_params` at the
+  **base-parameter** level (`None` estimates, a value fixes). There is **no**
+  `fit_beta` / `policy_beta` in `fit_subject` (unlike single-session `fit`):
+  `beta` is estimated by default and fixed by passing a value in
+  `static_params`. A fixed shared parameter fixes its single value; a fixed
+  session-specific parameter is broadcast to all sessions in v1 (per-session
+  fixed values deferred). Rationale: `static_params` already expresses
+  fixed-vs-estimated, so a dedicated beta flag is redundant.
 - **D-input shape:** `Session = list[Quintuple]` (type alias, not a dataclass);
   subject input is `list[Session]` = `list[list[Quintuple]]`, ordered earliest
   first. No user-facing session wrapper.
@@ -106,8 +110,9 @@ used to build `p0`.
   reusing the existing constants.
 - Expanded bounds follow the layout: shared positions once, then each session's
   specific positions repeated. No `d` entry (gap decay is a fixed constant).
-- Resolve base static via existing `resolve_static_params(..., fit_beta,
-  policy_beta)`; validate via `validate_fixed_params_against_bounds`.
+- Resolve base static directly from `static_params` (`None`/value, default all
+  `None`); validate via `validate_fixed_params_against_bounds`. No beta
+  special-casing.
 - Expand base static to a full-length `static` vector matching the optimizer
   layout (shared fixed once; session-specific fixed broadcast to all sessions).
 - Reduce to trainable subspace with the existing
@@ -170,7 +175,6 @@ def fit_subject(
     sessions, q0, p0, share_mask,
     static_params=None, transition_reward_func=None,
     user_param_bounds=(), *,
-    fit_beta=False, policy_beta=DEFAULT_POLICY_BETA,
     gap_rule="carry", gap_decay=1.0,
 ) -> SubjectFitResult:
     # 1. validate sessions (each via _validate_quintuples against q0)
