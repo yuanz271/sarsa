@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Tightened canonical SARSA bounds to exclude degenerate, likelihood-flattening edges: `alpha` now uses a strictly positive lower bound (`alpha ∈ (0, 1]`, excluding the no-learning edge) and `beta` is capped by the new `MAX_BETA = 20` constant (`beta ∈ [0, MAX_BETA]`) to avoid the weakly-identified near-deterministic regime. `beta = 0` (uniform policy) and `gamma ∈ [0, 1)` (including the myopic `gamma = 0`) remain valid.
+
 ### Added
 - Added `sarsa.multisession` for pooled multi-session fitting of a single subject: `fit_subject`, `run_subject`, `run_and_loss_subject`, and `SubjectFitResult`. A per-parameter `share_mask` selects which canonical/user parameters are shared across sessions versus session-specific; `Q` is threaded across session boundaries with a configurable gap rule (`carry`/`decay`/`reset`) and fixed `gap_decay`. The existing single-session `fit`/`run` are unchanged.
 

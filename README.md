@@ -73,15 +73,19 @@ By default, `fit()` treats `beta` as a fixed policy hyperparameter and optimizes
 large-yet-stable setting. Set `fit_beta=True` to estimate
 `beta` explicitly, and consider a sensitivity sweep on new tasks or reward scales.
 
-Canonical parameter domains now follow edge-safe box constraints:
-- `alpha ∈ [0, 1]`
-- `beta ∈ [0, ∞)`
+Canonical parameter domains:
+- `alpha ∈ (0, 1]`
+- `beta ∈ [0, MAX_BETA]` (`MAX_BETA = 20`)
 - `gamma ∈ [0, 1)`
 
-This means `alpha = 0`, `alpha = 1`, `beta = 0`, and `gamma = 0` are all valid
-edge cases, while exact `gamma = 1` remains excluded through the optimizer bound
-`1 - EPS`. `fit()` emits a warning when trainable canonical SARSA parameters land
-on active bounds, since that often signals weak identifiability or conditioning.
+The degenerate, likelihood-flattening edge `alpha = 0` (no learning) is excluded
+via a small positive lower bound `EPS`; `alpha = 1` (full TD replacement) is
+allowed. `beta` is capped at `MAX_BETA` because very large inverse temperatures
+make the softmax effectively deterministic and weakly identified; `beta = 0`
+(uniform policy) remains valid. `gamma = 0` (myopic) is valid, while exact
+`gamma = 1` is excluded through `1 - EPS`. `fit()` emits a warning when trainable
+canonical SARSA parameters land on active bounds, since that often signals weak
+identifiability or conditioning.
 
 This uses the observed rewards in the input data as-is; SARSA does not
 recompute them on the fly.

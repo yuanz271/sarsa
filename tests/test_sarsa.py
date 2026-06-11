@@ -352,8 +352,8 @@ class TestParameterPacking:
 class TestSarsaParameterBounds:
     def test_canonical_bounds_match_edge_safe_domains(self):
         assert sarsa.SARSA_PARAM_BOUNDS == [
-            (0.0, 1.0),
-            (0.0, None),
+            (sarsa.EPS, 1.0),
+            (0.0, sarsa.MAX_BETA),
             (0.0, 1.0 - sarsa.EPS),
         ]
 
@@ -678,17 +678,19 @@ class TestSarsaFitOptimization:
             quintuples,
             q0,
             p0,
-            static_params=[0.0, 0.0, 1.0 - sarsa.EPS],
+            static_params=[1.0, 0.0, 1.0 - sarsa.EPS],
         )
 
-        assert np.allclose(params, np.array([0.0, 0.0, 1.0 - sarsa.EPS]))
+        assert np.allclose(params, np.array([1.0, 0.0, 1.0 - sarsa.EPS]))
         assert np.isfinite(loss)
 
     @pytest.mark.parametrize(
         "static_params",
         [
             [1.5, None, None],
+            [0.0, None, None],
             [None, -0.1, None],
+            [None, 25.0, None],
             [None, None, 1.0],
         ],
     )

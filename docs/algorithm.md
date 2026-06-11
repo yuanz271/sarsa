@@ -34,8 +34,8 @@ $$\delta_t = r_{t+1} + \gamma \cdot Q(s_{t+1}, a_{t+1}) - Q(s_t, a_t)$$
 
 | Parameter | Symbol | Role | Bounds |
 |-----------|--------|------|--------|
-| Learning rate | α | Controls how fast Q-values update | [0, 1] |
-| Inverse temperature | β | Controls action selection determinism via softmax | [0, ∞) |
+| Learning rate | α | Controls how fast Q-values update | (0, 1] |
+| Inverse temperature | β | Controls action selection determinism via softmax | [0, MAX_BETA] |
 | Discount factor | γ | Controls how much future rewards are valued | [0, 1) |
 
 In the current implementation, these live in the **SARSA-owned parameter block**:
@@ -49,9 +49,12 @@ as a fixed policy hyperparameter by default. In practice, fitting usually target
 `alpha`, `gamma`, and any `user_params`, while `beta` is held at
 `sarsa.DEFAULT_POLICY_BETA` unless `fit_beta=True` is requested.
 
-The implementation allows the meaningful boundary cases directly (`alpha = 0`,
-`alpha = 1`, `beta = 0`, `gamma = 0`) and excludes only exact `gamma = 1`, since
-that changes the generic discounted-return setup.
+The implementation excludes the degenerate, likelihood-flattening edge
+`alpha = 0` (no learning) via a small positive lower bound, and caps `beta` at
+`MAX_BETA` (= 20) to avoid the weakly-identified near-deterministic regime. The
+meaningful boundary cases `alpha = 1` (full TD step), `beta = 0` (uniform
+policy), and `gamma = 0` (myopic) are allowed; only exact `gamma = 1` is
+excluded, since that changes the generic discounted-return setup.
 
 ## Policy
 
