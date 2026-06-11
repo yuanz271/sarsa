@@ -277,6 +277,7 @@ def test_pooled_parameter_recovery():
         share_mask=[True, True, True],
         static_params=[None, None, 0.0],  # gamma fixed (bandit-like task)
         fit_beta=True,
+        gap_rule="reset",  # independent-episode sessions start from Q=0
     )
     alpha_hat, beta_hat = result.session_params[0][:2]
     assert alpha_hat == pytest.approx(alpha_true, abs=0.1)
@@ -313,6 +314,7 @@ def test_pooled_beats_per_session_by_bic():
         share_mask=[True, True, True],
         static_params=static,
         fit_beta=True,
+        gap_rule="reset",  # independent-episode sessions start from Q=0
     )
     pooled_bic = bic(pooled.loss * n_total, k=2)
 
