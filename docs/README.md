@@ -7,3 +7,4 @@ SARSA toolkit for fitting behavioural datasets and running reproducible experime
 - [Algorithm](algorithm.md) — SARSA model and update rule
 - [Manual](manual.md) — API reference and usage guide
 - [Example](example.md) — Full walkthrough: fitting SARSA to a behavioural session
+- [Multi-session](multisession.md) — Pooled fitting across one subject's sessions

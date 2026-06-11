@@ -115,6 +115,7 @@ Full documentation is available in the repo under [`docs/`](docs/README.md):
 - [`docs/algorithm.md`](docs/algorithm.md) — SARSA model and update rule
 - [`docs/manual.md`](docs/manual.md) — API reference and usage guide
 - [`docs/example.md`](docs/example.md) — Full walkthrough
+- [`docs/multisession.md`](docs/multisession.md) — Pooled fitting across sessions
 
 ## Contributing
 

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added `sarsa.multisession` for pooled multi-session fitting of a single subject: `fit_subject`, `run_subject`, `run_and_loss_subject`, and `SubjectFitResult`. A per-parameter `share_mask` selects which canonical/user parameters are shared across sessions versus session-specific; `Q` is threaded across session boundaries with a configurable gap rule (`carry`/`decay`/`reset`) and fixed `gap_decay`. The existing single-session `fit`/`run` are unchanged.
+
 ## [0.4.0] - 2026-04-13
 
 ### Changed
