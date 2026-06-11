@@ -243,13 +243,20 @@ Implemented in `src/sarsa/multisession.py` (exported via `sarsa.multisession`):
 Done:
 - §9 steps 1–5 (layout helpers, gap rules, forward pass, pooled loss, fit,
   mask + decay handling).
-- Invariant tests in `tests/test_multisession.py`: reduces-to-`fit`,
-  stacking equivalence, reset, decay, mask recovery, validation errors
-  (12 tests, all passing). Full suite 46 passed; ruff + ty clean.
+- §9 step 6: generative parameter-recovery test
+  (`test_pooled_parameter_recovery`) and a pooled-vs-per-session model
+  comparison test (`test_pooled_beats_per_session_by_bic`). BIC is used rather
+  than AIC: the per-session model nests the pooled one, so AIC's weak `2k`
+  penalty can be overcome by in-sample overfitting at moderate `N`, whereas
+  BIC's `k * ln(N)` penalty correctly favors the simpler true model with
+  sufficient data.
+- §9 step 7: `notebooks/multisession_demo.ipynb` (simulation, pooled recovery,
+  per-session comparison with BIC, partial-sharing example).
+- Invariant + recovery tests in `tests/test_multisession.py` (14 tests, all
+  passing). Full suite 48 passed; ruff + ty + format clean.
 
-Remaining (§9 steps 6–7):
-- Synthetic parameter-recovery study + pooled-vs-per-session AIC/BIC comparison.
-- `notebooks/` demo on this branch; `docs/` page at merge time.
+Remaining:
+- `docs/` page at merge time (kept on `main` when merged).
 
 Deferred (not in v1): per-session fixed values, per-gap decay, fitted gap
 decay, `Session` metadata type, cross-subject parameters.
