@@ -236,7 +236,20 @@ Other checks:
 
 ## 10. Status
 
-All design decisions locked. Ready to implement per the order in §9.
+Implemented in `src/sarsa/multisession.py` (exported via `sarsa.multisession`):
+`scatter_session_params`, `gather_session_params`, `optimizer_vector_length`,
+`run_subject`, `run_and_loss_subject`, `fit_subject`, `SubjectFitResult`.
+
+Done:
+- §9 steps 1–5 (layout helpers, gap rules, forward pass, pooled loss, fit,
+  mask + decay handling).
+- Invariant tests in `tests/test_multisession.py`: reduces-to-`fit`,
+  stacking equivalence, reset, decay, mask recovery, validation errors
+  (12 tests, all passing). Full suite 46 passed; ruff + ty clean.
+
+Remaining (§9 steps 6–7):
+- Synthetic parameter-recovery study + pooled-vs-per-session AIC/BIC comparison.
+- `notebooks/` demo on this branch; `docs/` page at merge time.
 
 Deferred (not in v1): per-session fixed values, per-gap decay, fitted gap
 decay, `Session` metadata type, cross-subject parameters.
