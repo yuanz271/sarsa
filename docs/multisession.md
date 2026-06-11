@@ -27,11 +27,6 @@ optimized.
 - **`gap_decay`**: a fixed constant in `[0, 1]` used only by `"decay"`. It is
   **never estimated** and is conceptually distinct from `gamma` (γ is the
   within-session temporal discount; `gap_decay` is between-session forgetting).
-- **Estimation control**: `static_params` is the single mechanism for choosing
-  which parameters are estimated. `None` estimates a coordinate; a value fixes
-  it. There is **no `fit_beta` flag** — unlike single-session `fit`, every
-  parameter (including `beta`) is estimated by default; fix `beta` by passing
-  e.g. `static_params=[None, 5.0, None]`.
 - **Objective**: pooled cross-entropy over all stacked trials.
 
 ## Quick start
@@ -64,7 +59,8 @@ result = ms.fit_subject(
     sessions,
     q0=q0,
     p0=np.array([0.4, 3.0, 0.9]),
-    share_mask=[True, False, True],   # beta session-specific (estimated)
+    share_mask=[True, False, True],   # beta session-specific
+    fit_beta=True,                    # estimate beta
 )
 
 result.shared_params                                   # [alpha, gamma]
@@ -120,21 +116,22 @@ in `share_mask` and `n_spec = P − n_shared`. There is no fitted gap-decay term
 ms.fit_subject(
     sessions, q0, p0,
     share_mask=None,                 # default: all shared
-    static_params=None,              # default: all estimated
+    static_params=None,
     transition_reward_func=None,
     user_param_bounds=(),
     *,
+    fit_beta=False,
+    policy_beta=sarsa.DEFAULT_POLICY_BETA,
     gap_rule="carry",
     gap_decay=1.0,
 ) -> SubjectFitResult
 ```
 
 `p0` is either a length-`P` base vector (broadcast to every session) or a
-`(n_sessions, P)` array of per-session base vectors. `static_params` applies at
-the base-parameter level and is the only estimation control (`None` estimates,
-a value fixes): a fixed shared parameter fixes its single value; a fixed
-session-specific parameter is broadcast to all sessions. Unlike single-session
-`fit`, there is no `fit_beta` / `policy_beta` — `beta` is estimated by default.
+`(n_sessions, P)` array of per-session base vectors. `static_params`,
+`fit_beta`, and `policy_beta` apply at the base-parameter level: a fixed shared
+parameter fixes its single value; a fixed session-specific parameter is
+broadcast to all sessions.
 
 ### `run_subject`
 

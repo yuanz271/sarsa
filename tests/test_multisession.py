@@ -94,8 +94,7 @@ def test_single_session_reduces_to_fit(q0, p0):
     rng = np.random.default_rng(0)
     session = make_session(rng)
 
-    # fit() fixes beta by default; estimate it so both paths fit the same set.
-    params, loss, q_traj, action_prob = sarsa.fit(session, q0=q0, p0=p0, fit_beta=True)
+    params, loss, q_traj, action_prob = sarsa.fit(session, q0=q0, p0=p0)
 
     result = ms.fit_subject([session], q0=q0, p0=p0, share_mask=[True, True, True])
 
@@ -155,7 +154,7 @@ def test_pooled_loss_matches_concatenated_run(q0):
 def test_reset_single_session_reduces_to_fit(q0, p0):
     rng = np.random.default_rng(3)
     session = make_session(rng)
-    params, loss, _, _ = sarsa.fit(session, q0=q0, p0=p0, fit_beta=True)
+    params, loss, _, _ = sarsa.fit(session, q0=q0, p0=p0)
     result = ms.fit_subject(
         [session], q0=q0, p0=p0, share_mask=[True, True, True], gap_rule="reset"
     )
@@ -215,6 +214,7 @@ def test_session_specific_mask_allows_distinct_params(q0):
         q0=q0,
         p0=p0,
         share_mask=share_mask,
+        fit_beta=True,
     )
     # shared alpha/gamma identical across sessions
     assert result.session_params[0][0] == pytest.approx(result.session_params[1][0])
@@ -275,7 +275,8 @@ def test_pooled_parameter_recovery():
         q0=q0,
         p0=np.array([0.2, 1.5, 0.0]),
         share_mask=[True, True, True],
-        static_params=[None, None, 0.0],  # estimate alpha, beta; fix gamma
+        static_params=[None, None, 0.0],  # gamma fixed (bandit-like task)
+        fit_beta=True,
     )
     alpha_hat, beta_hat = result.session_params[0][:2]
     assert alpha_hat == pytest.approx(alpha_true, abs=0.1)
@@ -311,6 +312,7 @@ def test_pooled_beats_per_session_by_bic():
         p0=p0,
         share_mask=[True, True, True],
         static_params=static,
+        fit_beta=True,
     )
     pooled_bic = bic(pooled.loss * n_total, k=2)
 

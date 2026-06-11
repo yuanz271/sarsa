@@ -34,12 +34,14 @@ from numpy.typing import NDArray
 from scipy import optimize
 
 from .sarsa import (
+    DEFAULT_POLICY_BETA,
     SARSA_PARAM_BOUNDS,
     Quintuple,
     _validate_quintuples,
     cross_entropy,
     materialize_params,
     merge,
+    resolve_static_params,
     run,
     select_trainable_bounds,
     select_trainable_params,
@@ -326,27 +328,6 @@ def _expand_bounds(
     return expanded
 
 
-def _resolve_base_static(
-    static_params: Sequence[float | None] | None, param_count: int
-) -> list[float | None]:
-    """Resolve base-level fixed values; ``None`` marks an estimated parameter.
-
-    Unlike single-session :func:`sarsa.sarsa.fit`, there is no ``fit_beta`` /
-    ``policy_beta`` special-casing here: estimation is controlled entirely by
-    ``static_params`` (``None`` to estimate, a value to fix). Every parameter,
-    including ``beta``, is estimated by default.
-    """
-    if static_params is None:
-        return [None] * param_count
-    resolved = list(static_params)
-    if len(resolved) != param_count:
-        raise ValueError(
-            "static_params must match base parameter count; "
-            f"got {len(resolved)} and expected {param_count}"
-        )
-    return resolved
-
-
 def _resolve_share_mask(
     share_mask: Sequence[bool] | None, param_count: int
 ) -> list[bool]:
@@ -392,6 +373,8 @@ def fit_subject(
     transition_reward_func: Callable | None = None,
     user_param_bounds: Sequence[tuple[float | None, float | None]] = (),
     *,
+    fit_beta: bool = False,
+    policy_beta: float = DEFAULT_POLICY_BETA,
     gap_rule: str = "carry",
     gap_decay: float = 1.0,
 ) -> SubjectFitResult:
@@ -411,17 +394,20 @@ def fit_subject(
         Length-``P`` mask; ``True`` shares the parameter across sessions.
         Defaults to all-shared.
     static_params : Sequence[float | None] or None, optional
-        Base-level estimation mask (length ``P``): ``None`` estimates the
-        parameter, a value fixes it. A fixed shared parameter fixes its single
-        value; a fixed session-specific parameter is broadcast to all sessions.
-        This is the **only** estimation control — there is no ``fit_beta`` flag.
-        Every parameter, including ``beta``, is estimated by default; fix
-        ``beta`` by passing e.g. ``static_params=[None, 5.0, None]``.
+        Base-level fixed parameter values (length ``P``). A fixed shared
+        parameter fixes its single value; a fixed session-specific parameter is
+        broadcast to all sessions.
     transition_reward_func : Callable or None, optional
         Reward callback ``(user_params, s1, a1, s2) -> (s2, reward)``. Required
         when user parameters are present.
     user_param_bounds : Sequence[tuple[float | None, float | None]], optional
         Bounds for user-defined parameters appended after the canonical block.
+    fit_beta : bool, optional
+        If ``False`` (default), beta is treated as a fixed policy hyperparameter
+        at the base level. If ``True``, beta is trainable unless fixed in
+        ``static_params``.
+    policy_beta : float, optional
+        Fixed beta value used when ``fit_beta=False``.
     gap_rule : str, optional
         Q transform at session gaps: ``"carry"`` (default), ``"decay"``, or
         ``"reset"``.
@@ -463,8 +449,13 @@ def fit_subject(
     for session in sessions:
         _validate_quintuples(session, q0)
 
-    # Resolve base-level static mask (None estimates, value fixes) and bounds.
-    base_static = _resolve_base_static(static_params, param_count)
+    # Resolve base-level static (handles fit_beta / policy_beta) and bounds.
+    base_static = resolve_static_params(
+        static_params,
+        param_count,
+        fit_beta=fit_beta,
+        policy_beta=policy_beta,
+    )
     base_bounds = list(SARSA_PARAM_BOUNDS) + list(user_param_bounds)
     validate_fixed_params_against_bounds(base_static, base_bounds)
 
