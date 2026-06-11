@@ -4,5 +4,6 @@
 
 from .__about__ import __version__
 from . import sarsa
+from . import multisession
 
-__all__ = ["sarsa", "__version__"]
+__all__ = ["sarsa", "multisession", "__version__"]
